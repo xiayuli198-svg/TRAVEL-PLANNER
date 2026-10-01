@@ -208,6 +208,22 @@ class TestWorldCatalog(unittest.TestCase):
         self.assertIn("globe-viz", stage.group(1))
         self.assertIn("globe-cards", stage.group(1))
 
+    def test_asset_versions_are_in_sync(self):
+        """index.html 里所有 `?v=` 必须同一个号。
+
+        浏览器按 URL 缓存静态文件，哪个文件版本号没提，改完就还是旧的 ——
+        本项目真出现过 `style.css?v=57` 与 `app.js?v=58` 并存。
+        统一用 `python scripts/bump_assets.py` 归一（取最大 +1）。
+        """
+        import re
+
+        web = Path(worldmap.DATA_DIR).parents[2] / "web"
+        html = (web / "index.html").read_text(encoding="utf-8")
+        found = sorted({int(v) for v in re.findall(r"\?v=(\d+)", html)})
+        self.assertTrue(found, "index.html 里应当有 ?v= 版本号")
+        self.assertEqual(len(found), 1,
+                         f"静态资源版本号不一致：{found} —— 跑 python scripts/bump_assets.py")
+
     def test_env_colour_is_never_used_as_text_colour(self):
         """环境色只能当色块（圆点/边框），不能当字色。
 

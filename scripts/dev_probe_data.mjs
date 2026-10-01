@@ -66,14 +66,23 @@ function wsConnect(wsUrl) {
       sock.write(Buffer.concat([header, mask, masked]));
       return new Promise((res, rej) => {
         waiters.set(myId, res);
-        setTimeout(() => { if (waiters.has(myId)) { waiters.delete(myId); rej(new Error("CDP 超时 " + method)); } }, 20000);
+        // 60s：本探针有几段「在页面里轮询等异步结果」的等待（最长一段是城内动线 24s），
+        // 原来这里是 20s，比自家的等待还短 —— 那次查询稍慢一点，挂掉的就是探针自己
+        // （报 "CDP 超时 Runtime.evaluate"，看着像页面坏了，其实是超时预算没算好）。
+        setTimeout(() => { if (waiters.has(myId)) { waiters.delete(myId); rej(new Error("CDP 超时 " + method)); } }, 60000);
       });
     }
   });
 }
 
-const child = spawn(EDGE, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
-  `--window-size=${W},${H}`, "--no-first-run", "--no-default-browser-check", "about:blank"], { stdio: "ignore" });
+const child = spawn(EDGE, [
+  "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
+  `--window-size=${W},${H}`, "--no-first-run", "--no-default-browser-check", "about:blank",
+  "--disable-background-timer-throttling",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-features=CalculateNativeWinOcclusion",
+], { stdio: "ignore" });
 let wsUrl = null;
 for (let i = 0; i < 60 && !wsUrl; i++) {
   await sleep(250);
@@ -135,6 +144,10 @@ const evaluate = async (expr) => {
 };
 await cdp.send("Page.enable");
 await cdp.send("Runtime.enable");
+// 无头页面默认 visibilityState="hidden"，Chrome 不提交滚动（scrollIntoView 无效）——
+// 这个开关等价于 DevTools 的 "Emulate a focused page"，让滚动与计时器正常。
+try { await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true }); } catch (e) {}
+
 await cdp.send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: 1, mobile: false });
 await cdp.send("Page.navigate", { url: URL_PAGE });
 await sleep(2000);
@@ -142,8 +155,8 @@ await evaluate(`document.querySelector('button[data-tab="data"]').click()`);
 /* 等渲染完成：轮询到底表里有行（别用固定 sleep 猜） */
 {
   let tries = 0, rows = 0;
-  while (tries < 40 && rows === 0) {
-    await sleep(200);
+  while (tries < 150 && rows === 0) {        // 45s：overview 要给 10s+ 才出表
+    await sleep(300);
     rows = await evaluate(`document.querySelectorAll("#data-table tbody tr").length`);
     tries++;
   }
@@ -249,8 +262,8 @@ await evaluate(`(() => {
 })()`);
 {
   let tries = 0, rows = 0;
-  while (tries < 40 && rows === 0) {
-    await sleep(200);
+  while (tries < 150 && rows === 0) {        // 45s：overview 要给 10s+ 才出表
+    await sleep(300);
     rows = await evaluate(`document.querySelectorAll("#m-plan .plan-row").length`);
     tries++;
   }
@@ -272,8 +285,8 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
 /* 省钱/舒适/巧思路线库（分页 + 折叠 + 单向/环线） */
 {
   let tries = 0, cards = 0;
-  while (tries < 40 && cards === 0) {
-    await sleep(200);
+  while (tries < 150 && cards === 0) {       // 45s
+    await sleep(300);
     cards = await evaluate(`document.querySelectorAll("#rt-list .rt-card").length`);
     tries++;
   }
@@ -338,8 +351,8 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
     return true;
   })()`);
   let tries = 0, rows = 0;
-  while (tries < 40 && rows === 0) {
-    await sleep(200);
+  while (tries < 150 && rows === 0) {        // 45s：overview 要给 10s+ 才出表
+    await sleep(300);
     rows = await evaluate(`document.querySelectorAll("#imp-report .imp-row").length`);
     tries++;
   }
@@ -363,8 +376,8 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
 /* 我的行程：存档列表 + 点开看乘车表 + 排不出的条目留痕 */
 {
   let tries = 0, cards = 0;
-  while (tries < 40 && cards === 0) {
-    await sleep(200);
+  while (tries < 150 && cards === 0) {       // 45s
+    await sleep(300);
     cards = await evaluate(`document.querySelectorAll("#tp-list .trip-card").length`);
     tries++;
   }
@@ -423,8 +436,8 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
   })()`);
   {
     let tries = 0, days = 0;
-    while (tries < 30 && days === 0) {
-      await sleep(200);
+    while (tries < 150 && days === 0) {        // 45s
+      await sleep(300);
       days = await evaluate(`document.querySelectorAll("#tp-list .trip-card .trip-day").length`);
       tries++;
     }
@@ -457,7 +470,7 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
 /* 城内点位（只读预览）：名单覆盖率 + 命中/未命中都看得见 */
 {
   let tries = 0, rows = 0;
-  while (tries < 40 && rows === 0) {
+  while (tries < 120 && rows === 0) {        // 30s（点位列表要查库）
     await sleep(250);
     rows = await evaluate(`document.querySelectorAll("#poi-list .poi-row").length`);
     tries++;
@@ -506,7 +519,7 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
     ok("动线卡片存在", false, "页面上没有 #guide-city");
   } else {
     let tries = 0, cards = 0;
-    while (tries < 60 && cards === 0) {
+    while (tries < 110 && cards === 0) {     // 44s：首次打开要现抓 POI 池
       await sleep(400);
       cards = await evaluate(`document.querySelectorAll("#guide-days .guide-day").length`);
       tries++;
@@ -536,7 +549,7 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
       return true;
     })()`);
     let waits = 0, segs = 0;
-    while (waits < 60 && segs === 0) {
+    while (waits < 90 && segs === 0) {         // 45s（高德查市内腿）
       await sleep(500);
       segs = await evaluate(`document.querySelectorAll("#guide-days .gd-box .cc-seg").length`);
       waits++;
@@ -589,12 +602,15 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
 
   /* 真的点一下「城市动线」：要滚过去、要闪一下、城市框要能被填上 */
   const jumped = await evaluate(`(async () => {
-    const before = window.scrollY;
     const card = document.getElementById("data-guide");
+    const before = window.scrollY;
+    const scroller = document.scrollingElement;
     document.querySelector('#data-jump button[data-jump="data-guide"]').click();
-    // 平滑滚动要时间，轮询到「卡片进视口」为止（给 4 秒）
+    // 闪烁类只挂 1.8 秒：**必须点击后立刻查**，等轮询完再查永远是 false（踩过）
+    const flashedRightAway = card.classList.contains("jump-flash");
+    // 平滑滚动要时间，轮询到「卡片进视口」为止（给 8 秒）
     let waited = 0;
-    while (waited < 4000) {
+    while (waited < 8000) {
       await new Promise((r) => setTimeout(r, 200));
       waited += 200;
       const b = card.getBoundingClientRect();
@@ -603,8 +619,14 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
     const box = card.getBoundingClientRect();
     return {
       moved: Math.abs(window.scrollY - before) > 200,
-      flashed: card.classList.contains("jump-flash"),
+      flashed: flashedRightAway,
       waited,
+      before,
+      after: window.scrollY,
+      scrollerTop: scroller ? scroller.scrollTop : null,
+      bodyCls: String(document.body.className),
+      bodyOverflow: getComputedStyle(document.body).overflowY,
+      visibility: document.visibilityState,
       top: Math.round(box.top),
       inView: box.top > -80 && box.top < window.innerHeight * 0.6,
     };
@@ -643,8 +665,8 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
 /* 数据可信度：原来覆盖率散在三处，现在必须收在一张表里，每行能跳 */
 {
   let tries = 0, rows = 0;
-  while (tries < 20 && rows < 3) {
-    await sleep(400);
+  while (tries < 60 && rows < 3) {           // 30s：可信度表要等三个异步接口
+    await sleep(500);
     rows = await evaluate(`document.querySelectorAll("#cred-grid .cred-row").length`);
     tries++;
   }
@@ -722,8 +744,7 @@ ok("计划步骤写明动作与理由", plan.rows.some((r) => /基准日/.test(r
     if (!btn) return { ok: false };
     btn.click();
     let waited = 0;
-    while (waited < 24000) {
-      await new Promise((r) => setTimeout(r, 500));
+    while (waited < 24000) {      await new Promise((r) => setTimeout(r, 500));
       waited += 500;
       const rows = document.querySelectorAll("#guide-days .guide-day").length;
       const st = (document.getElementById("guide-status") || {}).textContent || "";

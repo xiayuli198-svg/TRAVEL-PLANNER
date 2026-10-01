@@ -75,8 +75,14 @@ function wsConnect(wsUrl) {
   });
 }
 
-const child = spawn(EDGE, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
-  `--window-size=${W},${H}`, "--no-first-run", "--no-default-browser-check", "about:blank"], { stdio: "ignore" });
+const child = spawn(EDGE, [
+  "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
+  `--window-size=${W},${H}`, "--no-first-run", "--no-default-browser-check", "about:blank",
+  "--disable-background-timer-throttling",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-features=CalculateNativeWinOcclusion",
+], { stdio: "ignore" });
 let wsUrl = null;
 for (let i = 0; i < 60 && !wsUrl; i++) {
   await sleep(250);
@@ -99,6 +105,10 @@ const evaluate = async (expr) => {
 
 await cdp.send("Page.enable");
 await cdp.send("Runtime.enable");
+// 无头页面默认 visibilityState="hidden"，Chrome 不提交滚动（scrollIntoView 无效）——
+// 这个开关等价于 DevTools 的 "Emulate a focused page"，让滚动与计时器正常。
+try { await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true }); } catch (e) {}
+
 await cdp.send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: 1, mobile: false });
 
 /** 在页面里注入对比度审计函数（只读，不改样式） */
@@ -186,14 +196,40 @@ const AUDIT = `(() => {
     const large = size >= 24 || (size >= 18.66 && bold);
     const need = large ? 3.0 : 4.5;
     const r = ratio(eff, bg);
+    const chain = (() => {     // 报错时带上祖先链，省得再猜「这个底色是从哪来的」
+      const out = [];
+      let n = el, hops = 0;
+      while (n && n !== document.documentElement && hops < 4) {
+        const st2 = getComputedStyle(n);
+        const sel = n.getAttribute && n.getAttribute("aria-selected");
+        out.push(n.tagName.toLowerCase()
+          + (n.className && typeof n.className === "string"
+            ? "." + String(n.className).split(/\\s+/).join(".") : "")
+          + (sel ? "(sel=" + sel + ")" : "")
+          + "[" + st2.backgroundColor + (st2.backgroundImage !== "none" ? "+图" : "") + "]");
+        n = n.parentElement;
+        hops++;
+      }
+      return out.join(" < ");
+    })();
     const row = {
       sel: el.tagName.toLowerCase() + (el.className && typeof el.className === "string"
         ? "." + el.className.split(/\\s+/).filter(Boolean).slice(0, 2).join(".") : ""),
       text: text.slice(0, 26), ratio: Math.round(r * 100) / 100, need,
       color: st.color, bg: "rgb(" + Math.round(bg.r) + "," + Math.round(bg.g) + "," + Math.round(bg.b) + ")",
-      size: Math.round(size),
+      size: Math.round(size), chain,
     };
-    if (r < need) out.push(row);
+    if (r < need) out.push({ ...row, probe: {
+      // 复现不了的问题最难查：把「这一刻 DOM 到底是什么」一起带上
+      parentTag: el.parentElement ? el.parentElement.tagName : "",
+      parentCls: el.parentElement ? String(el.parentElement.className) : "",
+      parentInline: el.parentElement ? (el.parentElement.getAttribute("style") || "") : "",
+      parentMatchesActive: el.parentElement
+        ? !!el.parentElement.closest("header nav button.active") : false,
+      parentHtml: el.parentElement ? el.parentElement.outerHTML.slice(0, 90) : "",
+      ready: document.readyState,
+      sheets: document.styleSheets.length,
+    } });
     else if (r < COMFORT) weak.push(row);
   });
   return { issues: out, weak, skipped, options: document.querySelectorAll("select option").length };
@@ -203,6 +239,51 @@ const tabs = ["plan", "loop", "map", "globe", "data"];
 const bad = [];
 const weak = [];          // 达标但偏弱：4.5 是底线，不是「看着舒服」
 let skippedTotal = 0;
+/**
+ * 审计 + **复测**：只在「隔一会儿再看还在」时才认定为问题。
+ *
+ * 另外每次审计前会**临时关掉过渡动画**（`transition: none`）：页头页签按钮带
+ * `transition: .2s ease`，改 class 时底色与字色是**渐变的**，审计若正好落在动画中间，
+ * 会读到「底色已经是浅色、字色还是浅色」这种真实界面上不存在的组合
+ * （本项目报过一次「页头 01 号标签 1.47 对比度」，事后在稳定 DOM 里怎么查都查不到）。
+ * 视觉审计本来就不该量动画中间态 —— 关掉动画再量，问题依旧出现才是真问题。
+ */
+const FREEZE = `(() => {
+  let s = document.getElementById("contrast-freeze");
+  if (!s) {
+    s = document.createElement("style");
+    s.id = "contrast-freeze";
+    s.textContent = "*, *::before, *::after { transition: none !important; animation: none !important; }";
+    document.head.appendChild(s);
+  }
+  return true;
+})()`;
+const UNFREEZE = `(() => { const s = document.getElementById("contrast-freeze");
+  if (s) s.remove(); return true; })()`;
+
+async function auditStable(label) {
+  await evaluate(FREEZE);
+  await sleep(120);                      // 让样式重算一帧
+  const first = await evaluate(AUDIT);
+  const issues1 = (first && first.issues) || [];
+  if (!issues1.length) { await evaluate(UNFREEZE); return { res: first, rows: [], dropped: 0 }; }
+  await sleep(600);
+  const second = await evaluate(AUDIT);
+  const issues2 = (second && second.issues) || [];
+  await evaluate(UNFREEZE);
+  const keyOf = (r) => [r.sel, r.text, r.color, r.bg, r.size].join("|");
+  const still = new Set(issues2.map(keyOf));
+  const rows = issues1.filter((r) => still.has(keyOf(r)));
+  const dropped = issues1.length - rows.length;
+  if (dropped) {
+    console.log(`  （${label}：首测 ${issues1.length} 处、复测后仍存在 ${rows.length} 处，` +
+      `丢掉 ${dropped} 处加载/动画瞬间的假报）`);
+  }
+  const seen = new Set(rows.map(keyOf));
+  issues2.forEach((r) => { if (!seen.has(keyOf(r))) rows.push(r); });
+  return { res: first, rows, dropped };
+}
+
 for (const tab of tabs) {
   await cdp.send("Page.navigate", { url: URL_PAGE });
   await sleep(1800);
@@ -212,8 +293,9 @@ for (const tab of tabs) {
     // 数据台要多等：路线库、我的行程、城内点位都是异步来的
     await sleep(2500);
   }
-  const res = await evaluate(AUDIT);
-  const rows = (res && res.issues) || [];
+  const audited = await auditStable(tab);
+  const res = audited.res;
+  const rows = audited.rows;
   skippedTotal += (res && res.skipped) || 0;
   rows.forEach((r) => bad.push({ ...r, tab }));
   ((res && res.weak) || []).forEach((r) => weak.push({ ...r, tab }));
@@ -303,6 +385,8 @@ console.log(`\n== 对比度不足（阈值 ${MIN}）共 ${bad.length} 处，去�
 uniq.slice(0, 40).forEach((r) => {
   console.log(`  ${String(r.ratio).padStart(5)} (需 ${r.need}) [${r.tab}] ${r.sel} ${r.size}px  ` +
     `${r.color} on ${r.bg}  「${r.text}」`);
+  if (r.chain) console.log(`        祖先链：${r.chain}`);
+  if (r.probe) console.log("        现场：" + JSON.stringify(r.probe));
 });
 
 /* 达标但偏弱的那批：4.5 只是「勉强能认出字」，小字号 + 蓝色系在浅底上依然费眼。

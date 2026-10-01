@@ -1321,7 +1321,7 @@
   }
 
   /* ---------------------------------------------------------- 高德 3D（保留原有功能） */
-  const AMAP_KEY = "7913f5e8e44f41933f72f18b5e9320d";
+  const AMAP_KEY = "8e02c20585f107cd97d4f2eb21210d2a";
   function showAmap() {
     const box = $("amap-info");
     if (!box) return;

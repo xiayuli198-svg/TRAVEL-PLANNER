@@ -1,9 +1,10 @@
-/* 看一眼生成出来的报告书：直接以 file:// 打开，截封面/中段/尾部三张。
+/* 在真实页面里跑一段 JS 并打印结果（调试用）。
  *
- *   node scripts/shot_report.mjs [宽] [高]
+ *   node scripts/eval_in_page.mjs "document.title"
+ *   node scripts/eval_in_page.mjs --tab data "document.querySelectorAll('.card').length"
+ *   node scripts/eval_in_page.mjs --url http://127.0.0.1:8000/ "location.href"
  *
- * 报告是给人看（也可能打印）的，所以除了结构检查（scripts/check_report.py），
- * 还要真渲染一遍确认排版没崩。
+ * 用途：探针断言失败时，不用改探针就能立刻问「现在 DOM 到底是什么样」。
  */
 import { spawn } from "node:child_process";
 import net from "node:net";
@@ -11,20 +12,26 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const REPORT = path.join(ROOT, "项目报告书.html");
-const W = Number(process.argv[2] || 1280), H = Number(process.argv[3] || 900);
+const args = process.argv.slice(2);
+let tab = "", url = process.env.PROBE_URL || "http://127.0.0.1:8000/";
+const exprParts = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--tab") { tab = args[++i]; continue; }
+  if (args[i] === "--url") { url = args[++i]; continue; }
+  exprParts.push(args[i]);
+}
+const expr = exprParts.join(" ");
+if (!expr) { console.error("用法：node scripts/eval_in_page.mjs [--tab data] \"<JS 表达式>\""); process.exit(2); }
+
 const EDGE = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
 ].find((p) => fs.existsSync(p));
 if (!EDGE) { console.error("找不到 Edge/Chrome"); process.exit(1); }
-if (!fs.existsSync(REPORT)) { console.error("还没有 项目报告书.html"); process.exit(1); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "dsh-report-shot-"));
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), "dsh-eval-"));
 
 function wsConnect(wsUrl) {
   return new Promise((resolve, reject) => {
@@ -66,7 +73,7 @@ function wsConnect(wsUrl) {
       const masked = Buffer.from(data.map((v, i) => v ^ mask[i % 4]));
       const header = data.length < 126
         ? Buffer.from([0x81, 0x80 | data.length])
-        : Buffer.from([0x81, 0x80 | 126, data.length >> 8, data.length & 0xff]);
+        : Buffer.from([0x81, 0x80 | 0x7e, data.length >> 8, data.length & 0xff]);
       sock.write(Buffer.concat([header, mask, masked]));
       return new Promise((res, rej) => {
         waiters.set(myId, res);
@@ -78,7 +85,7 @@ function wsConnect(wsUrl) {
 
 const child = spawn(EDGE, [
   "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
-  `--window-size=${W},${H}`, "--no-first-run", "--no-default-browser-check", "about:blank",
+  "--window-size=1440,900", "--no-first-run", "--no-default-browser-check", "about:blank",
   "--disable-background-timer-throttling",
   "--disable-backgrounding-occluded-windows",
   "--disable-renderer-backgrounding",
@@ -97,49 +104,32 @@ for (let i = 0; i < 60 && !wsUrl; i++) {
   } catch (e) { /* 还没起来 */ }
 }
 if (!wsUrl) { child.kill(); console.error("拿不到 DevTools 端口"); process.exit(1); }
-
 const cdp = await wsConnect(wsUrl);
-const evaluate = async (expr) => {
-  const r = await cdp.send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true });
-  if (r.result && r.result.exceptionDetails) throw new Error(r.result.exceptionDetails.text);
-  return r.result && r.result.result ? r.result.result.value : undefined;
-};
 await cdp.send("Page.enable");
 await cdp.send("Runtime.enable");
-// 无头页面默认 visibilityState="hidden"，Chrome 不提交滚动（scrollIntoView 无效）——
-// 这个开关等价于 DevTools 的 "Emulate a focused page"，让滚动与计时器正常。
-try { await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true }); } catch (e) {}
-
-await cdp.send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: 1, mobile: false });
-await cdp.send("Page.navigate", { url: pathToFileURL(REPORT).href });
-await sleep(1200);
-
-const info = await evaluate(`(() => {
-  const cards = [...document.querySelectorAll(".card h2")].map((h) => h.textContent);
-  return {
-    title: document.title,
-    height: document.documentElement.scrollHeight,
-    sections: cards,
-    verdict: (document.querySelector(".verdict b") || {}).textContent || "",
-    metrics: [...document.querySelectorAll(".metric")].map((m) => m.textContent.replace(/\\s+/g, " ").trim()),
-    readyState: document.readyState,
-  };
-})()`);
-console.log("报告概览:", JSON.stringify({ title: info.title, height: info.height }, null, 1));
-console.log("小节:", info.sections.join(" | "));
-console.log("结论:", info.verdict);
-console.log("指标:", info.metrics.join(" ／ "));
-
-const shots = [];
-const stops = [0, Math.round(info.height / 2), Math.max(0, info.height - H)];
-for (let i = 0; i < stops.length; i++) {
-  await evaluate(`window.scrollTo(0, ${stops[i]})`);
-  await sleep(500);
-  const shot = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-  const file = path.join(os.tmpdir(), `report-${i}-${W}x${H}.png`);
-  fs.writeFileSync(file, Buffer.from(shot.result.data, "base64"));
-  shots.push(file);
+// 无头页面默认处于「隐藏」状态：`document.visibilityState === "hidden"` 时 Chrome 不提交滚动，
+// `scrollIntoView` / `scrollTop` 都不会动（探针报「点了没反应」的真凶）。
+// 这个开关等价于 DevTools 的 "Emulate a focused page"，滚动与计时器才正常。
+try { await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true }); } catch (e) { /* 老版本没有 */ }
+if (process.env.EVAL_METRICS === "1") {
+  // 有些探针会用 setDeviceMetricsOverride；加上这个开关就能复现它们的视口条件
+  await cdp.send("Emulation.setDeviceMetricsOverride",
+    { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 }
-console.log("截图：\n" + shots.join("\n"));
-cdp.close(); child.kill(); await sleep(300);
+await cdp.send("Page.navigate", { url });
+await sleep(2500);
+if (tab) {
+  await cdp.send("Runtime.evaluate", {
+    expression: `document.querySelector('button[data-tab="${tab}"]')?.click()`, returnByValue: true });
+  await sleep(2500);
+}
+const r = await cdp.send("Runtime.evaluate",
+  { expression: `(async () => {
+      try { const v = await (${expr}); return JSON.stringify(v, null, 1); }
+      catch (e) { return "表达式抛错: " + e.message; }
+    })()`,
+    returnByValue: true, awaitPromise: true });
+const out = r.result && r.result.result ? r.result.result.value : "(没有返回值)";
+console.log(out);
+cdp.close(); child.kill(); await sleep(200);
 try { fs.rmSync(profile, { recursive: true, force: true }); } catch (e) {}

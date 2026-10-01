@@ -81,9 +81,15 @@ function wsConnect(wsUrl) {
   });
 }
 
-const child = spawn(EDGE, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
+const child = spawn(EDGE, [
+  "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
   `--window-size=${W},${H}`, "--no-first-run", "--no-default-browser-check", "--use-angle=swiftshader",
-  "--enable-unsafe-swiftshader", "about:blank"], { stdio: "ignore" });
+  "--enable-unsafe-swiftshader", "about:blank",
+  "--disable-background-timer-throttling",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-features=CalculateNativeWinOcclusion",
+], { stdio: "ignore" });
 
 let wsUrl = null;
 for (let i = 0; i < 60 && !wsUrl; i++) {
@@ -114,6 +120,10 @@ const shot = async (name) => {
 
 await cdp.send("Page.enable");
 await cdp.send("Runtime.enable");
+// 无头页面默认 visibilityState="hidden"，Chrome 不提交滚动（scrollIntoView 无效）——
+// 这个开关等价于 DevTools 的 "Emulate a focused page"，让滚动与计时器正常。
+try { await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true }); } catch (e) {}
+
 await cdp.send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: 1, mobile: false });
 await cdp.send("Page.navigate", { url: URL_PAGE });
 await sleep(1800);

@@ -103,9 +103,13 @@ DELETE FROM flight_route_cache WHERE origin='北京' AND destination='上海' AN
 ## 4. 可选的精度增强与缓存清理
 
 ```powershell
-# 全国车站坐标预取（提升铁路票价估算精度；可选，跑一次约 20 分钟）
-python scripts/prewarm_coords.py
-python scripts/check_geo.py            # 查看坐标覆盖率
+# 全国车站坐标预取（提升铁路票价估算精度；可选，跑一次约 5-20 分钟）
+python scripts/prewarm_coords.py       # 已成功的跳过；失败过的会绕过负缓存重试
+python scripts/prewarm_coords.py --force             # 连已成功的也重查
+python scripts/prewarm_coords.py --no-retry-failed    # 这次不碰负缓存
+python scripts/check_geo.py            # 查看坐标覆盖率（成功/失败条数）
+python scripts/retry_failed_geo.py --sample 8   # 换 key 后先抽样（只读：会还原现场）
+python -m unittest tests.test_amap_cache -v     # 负缓存语义的回归测试（4 项，不联网）
 
 # 公交中转指引缓存（地铁线路图大改后想重新查询时）
 # DELETE FROM transit_cache;  即可全部重取（走高德配额，个人 15 万次/月，够用）
@@ -113,6 +117,39 @@ python scripts/check_geo.py            # 查看坐标覆盖率
 # 空间回收：删除太久以前的日期数据
 # DELETE FROM schedules WHERE date < '2026-01-01';
 ```
+
+### 换高德 key（一处命令，两处生效）
+
+高德有**两类 key**，本项目两处都要用，只改一处会出现「规划能用、地球 3D 不能用」这种半坏状态：
+
+| 用在哪 | 存哪 | 干什么 |
+|---|---|---|
+| 服务端 Web 服务 API | `meta.amap_key`（或环境变量 `AMAP_KEY`） | 地理编码、POI 检索、公交中转、驾车路径 |
+| 浏览器 Web端(JS API) | `web/globe3d.js` 的 `AMAP_KEY` 常量 | 地球页签的「高德 3D」按钮 |
+
+```powershell
+python -X utf8 scripts/set_amap_key.py <新KEY>            # 先验后用：4 个接口全通才写
+python -X utf8 scripts/set_amap_key.py <新KEY> --dry-run  # 只看会改什么
+python -X utf8 scripts/check_amap_key.py --current        # 单独验当前配置里的 key（Web 服务）
+python -X utf8 scripts/check_amap_live.py                 # 走 HTTP 接口端到端确认服务里生效
+node scripts/check_amap_js.mjs                            # 真浏览器点「高德 3D」，验 JS API 那串
+python -X utf8 scripts/show_amap_key.py                   # 看 key 存在哪（只显示前后几位）
+```
+
+要点：
+
+- **先验证再写**。`set_amap_key.py` 会拿新 key 打 `geocode / place/text / transit / driving`
+  四个本项目真正会调的接口，有一个不通就不写（避免装上一个坏 key）。
+- 换完**不用重启服务**：服务端 key 是每次请求现读 `meta`；前端文件会顺带把 `?v=` 提一档破缓存。
+- **旧失败记录会拦着新 key**：`geo_cache` 把查不到的名字记成 `failed=1`（负缓存），
+  换 key 后这些名字仍被跳过，要跑一次 `python scripts/prewarm_coords.py` 才会重新查。
+  ⚠️ 这里踩过一个坑：`amap.geocode()` 对负缓存是**直接返回 None、根本不发请求**的，
+  所以第一版 prewarm 的「重试失败项」其实是空转（日志「新增成功 0 失败 685」，
+  看着像新 key 也不能用）。现在 `geocode(..., retry_failed=True)` 显式绕过负缓存，
+  prewarm 默认就带这个参数，并会分开报「其中救回旧失败 N 条」。
+  实测换 key 后 682 条旧失败全部救回。
+- 报错码对照：`10001` key 无效、`10002` 无此服务权限、`10003` 当日超限、`10005` IP 白名单、
+  `10006/10009` 平台类型不匹配（JS API key 拿去调服务端，或反之）。
 
 ---
 
@@ -486,6 +523,27 @@ python scripts/purge_probe_crawl.py --date 2099-01-01              # 清理探�
 ⚠️ **写浏览器探针时注意**：前端 `startCrawl` 调用的是模块内的 `postJSON`，在页面里替换
 `window.TP.postJSON` **拦不住**它 —— 探针点一下「开始真爬」就会真的向 12306 发请求。
 `dev_probe_data.mjs` 里的做法是把 `window.confirm` 打桩成返回 `false`，让流程停在确认框上。
+
+### 浏览器探针：两个「看着像页面坏了」的坑
+
+写/改探针前先看这两条，能省几小时：
+
+1. **无头页面是「隐藏」状态，Chrome 不提交滚动。**
+   `document.visibilityState === "hidden"` 时，`scrollIntoView()` 与 `el.scrollTop = n`
+   都**不会**改变 `window.scrollY`，`setTimeout` 也被节流。症状很迷惑：探针前半段全过，
+   后半段开始报「点了没反应」「卡片距顶 13389px」，甚至 `CDP 超时 Runtime.evaluate`。
+   修法：CDP 的 `Emulation.setFocusEmulationEnabled({enabled: true})`（等价 DevTools 的
+   "Emulate a focused page"），页面变 `visible` 后滚动立刻正常。11 个探针都已加上
+   （`python scripts/patch_probe_focus.py --check` 可核对）。
+   配套的启动开关也补齐了：`--disable-background-timer-throttling` /
+   `--disable-backgrounding-occluded-windows` / `--disable-renderer-backgrounding` /
+   `--disable-features=CalculateNativeWinOcclusion`（`patch_probe_flags.py`）。
+2. **等待预算要按这台机器的真实耗时定，别拍脑袋。**
+   本机 `schedules` 有 **431 万行**，数据台首屏的 `/api/maintain/overview` 要 **约 10 秒**
+   （`date_rows` 1.4s + `health` 1.9s + 其余聚合；`python scripts/time_data_desk.py` 可复测）。
+   探针原来按「40 次 × 200ms = 8 秒」等渲染，比接口本身还短，于是偶发「表格 0 行」。
+   现在统一按秒算预算（45s 上限，`relax_probe_budgets.py` 批量调过）。
+   另外：**闪烁类断言必须点击后立刻查**——`jump-flash` 只挂 1.8 秒，等轮询完再查永远是 false。
 
 ### 报告书与验证流水线（`collect_evidence.py` → `build_report.py`）
 

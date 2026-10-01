@@ -29,13 +29,20 @@ def _get(url: str, timeout: int = 15) -> dict:
         return json.loads(r.read())
 
 
-def geocode(conn: sqlite3.Connection, key: str, name: str, city: str
-            ) -> Optional[Tuple[float, float]]:
-    """地址/站名 → 经纬度（缓存，含失败负缓存）。"""
+def geocode(conn: sqlite3.Connection, key: str, name: str, city: str,
+            retry_failed: bool = False) -> Optional[Tuple[float, float]]:
+    """地址/站名 → 经纬度（缓存，含失败负缓存）。
+
+    ``retry_failed=True`` 时**忽略负缓存**，重新问一次高德：
+
+    这一条是踩出来的。`geo_cache` 把查不到的名字记成 ``failed=1`` 以避免反复撞，
+    但这也意味着「换了个 key 再跑一遍 prewarm」会全部秒回 None —— 调用方看到的是
+    「新增成功 0 失败 685」，看着像新 key 也不能用，其实是自己短路了，一个请求都没发。
+    """
     row = conn.execute(
         "SELECT lon,lat,failed FROM geo_cache WHERE name=? AND city=?",
         (name, city)).fetchone()
-    if row:
+    if row and not (retry_failed and row["failed"]):
         if row["failed"]:
             return None
         return (row["lon"], row["lat"])

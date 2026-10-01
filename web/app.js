@@ -2432,7 +2432,11 @@ function openGuideFor(city) {
 function jumpToSection(id) {
   const el = $(id);
   if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  // 页面在后台/被遮挡时不做平滑滚动：那种状态下浏览器不驱动滚动动画，
+  // scrollIntoView({behavior:"smooth"}) 会**什么都不做**（位置一点不动）。
+  // 无头浏览器跑久了就是这个状态，探针曾经报「点了没反应」。人在看的时候才需要平滑。
+  const hidden = document.visibilityState === "hidden";
+  el.scrollIntoView({ behavior: hidden ? "auto" : "smooth", block: "start" });
   el.classList.remove("jump-flash");
   void el.offsetWidth;                       // 重新触发动画（连点同一个也闪）
   el.classList.add("jump-flash");

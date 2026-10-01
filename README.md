@@ -12,6 +12,27 @@
 - 存储：SQLite（`data/timetable.db` 时刻表 + `data/tourism.db` 城市旅游资料）
 - 界面：命令行 + 本地 Web（http://127.0.0.1:8000），含立体中国地图
 
+## 高德 key（两类，别只配一个）
+
+高德的两类 key 用途不同，本项目两处都要：
+
+| 用途 | 存哪 | 说明 |
+|---|---|---|
+| 服务端 Web 服务 API | 数据库 `meta.amap_key`（或环境变量 `AMAP_KEY`） | 地理编码、POI 检索、市内公交中转、自驾里程/过路费 |
+| 浏览器 Web端(JS API) | `web/globe3d.js` 的 `AMAP_KEY` | 地球页签的「高德 3D」按钮 |
+
+换 key 用一条命令，**它会先拿新 key 打 4 个真实接口，全通过才写**（服务端 + 前端 + 破缓存一起改）：
+
+```powershell
+python -X utf8 scripts/set_amap_key.py <新KEY>
+python -X utf8 scripts/check_amap_live.py    # 走 HTTP 端到端确认服务里真的生效
+node scripts/check_amap_js.mjs               # 真浏览器点「高德 3D」，确认前端那串也能用
+```
+
+换完不用重启服务（key 是每次请求现读数据库）。**注意**：`geo_cache` 会把查不到的名字记成失败
+（负缓存，且命中时**根本不发请求**），换 key 后要跑一次 `python scripts/prewarm_coords.py`
+才会重查那些名字 —— 本项目实测换 key 后一次性救回 669 条旧失败，坐标覆盖 73% → 99%。
+
 ## 快速开始
 
 ```powershell
