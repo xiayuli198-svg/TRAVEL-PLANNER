@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大交通换乘规划</title>
+<link rel="stylesheet" href="/static/style.css?v=57">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-shell">
+    <div class="brand-lockup">
+      <div class="brand-mark" aria-hidden="true">⇄</div>
+      <div>
+        <p class="eyebrow">PERSONAL ROUTE STUDIO</p>
+        <h1>大交通换乘规划</h1>
+        <p class="tagline">火车、飞机、长途汽车与自驾的比较：换乘留够时间，票价按当天口径估算，出门前再确认一次。</p>
+      </div>
+    </div>
+  <nav>
+    <button data-tab="plan" class="active" aria-selected="true"><span>01</span> 换乘规划</button>
+    <button data-tab="loop" aria-selected="false"><span>02</span> 环线旅行</button>
+    <button data-tab="map" aria-selected="false"><span>03</span> 地图漫游</button>
+    <button data-tab="globe" aria-selected="false"><span>04</span> 地球模式</button>
+    <button data-tab="data" aria-selected="false"><span>05</span> 数据台</button>
+  </nav>
+  </div>
+</header>
+
+<main class="app-shell">
+  <!-- ============ 换乘规划 ============ -->
+  <section id="tab-plan" class="tab active">
+    <div class="section-intro">
+      <p class="kicker">ROUTE BUILDER / 01</p>
+      <h2>两地之间的换乘方案</h2>
+      <p>选出发地、到达地和日期，程序会在全国铁路时刻表里找当天可行的走法，按「最快 / 最便宜」排序，并在地图上标出经由城市。</p>
+    </div>
+    <form id="plan-form" class="card">
+      <div class="form-heading"><span class="form-step">A</span><div><h3>出发与到达</h3><p>支持「北京 → 上海」这样的城市对，也支持指定车站；只填其中一个就按单程规划。</p></div></div>
+      <div class="row">
+        <label>出发地
+          <input id="p-from" class="ac" autocomplete="off" placeholder="城市或车站，如：北京">
+        </label>
+        <span class="arrow">→</span>
+        <label>到达地
+          <input id="p-to" class="ac" autocomplete="off" placeholder="城市或车站，如：上海">
+        </label>
+      </div>
+      <div class="row">
+        <label>日期 <input id="p-date" type="date"></label>
+        <label>出发时间 <input id="p-time" type="time" value="08:00"></label>
+        <label>出行方式
+          <select id="p-mode">
+            <option value="mixed">混合（推荐）</option>
+            <option value="rail">只坐火车</option>
+            <option value="air">只坐飞机</option>
+            <option value="green">绿色出行：卧铺 / 硬座，少坐 4 小时以内的高铁</option>
+            <option value="tour">旅游环线：把沿途城市当成景点串起来</option>
+          </select>
+        </label>
+        <label>每站停留
+          <select id="p-tourstay">
+            <option value="halfday" selected>半日</option>
+            <option value="transit">只看一眼</option>
+            <option value="nights">过夜</option>
+          </select>
+        </label>
+        <label class="inline"><input type="checkbox" id="p-withflights"> 同时比价航班</label>
+        <label id="p-transfer-field">最多换乘
+          <select id="p-transfers">
+            <option>0</option><option>1</option><option selected>2</option><option>3</option>
+          </select>
+        </label>
+        <label id="p-objective-field">优化目标
+          <select id="p-objective">
+            <option value="fast">最快到达</option>
+            <option value="cheap">最省钱</option>
+          </select>
+        </label>
+        <label id="p-slack-field">换乘余量
+          <select id="p-slack">
+            <option value="1">1 小时余量</option>
+            <option value="2" selected>2 小时余量</option>
+            <option value="4">4 小时余量</option>
+            <option value="6">6 小时余量</option>
+          </select>
+        </label>
+        <label id="p-buffer-field">中转等待
+          <select id="p-buffer">
+            <option value="0">0 分钟</option>
+            <option value="15">15 分钟</option>
+            <option value="30" selected>30 分钟</option>
+            <option value="60">60 分钟</option>
+          </select>
+        </label>
+        <label id="p-maxdays-field">最多几天
+          <input id="p-maxdays" type="number" min="2" max="60" value="10">
+        </label>
+        <label id="p-city-count-field">沿途停留城市数
+          <input id="p-city-count" type="number" min="2" max="20" value="5">
+        </label>
+        <label id="p-rest-days-field">每座城市休息天数
+          <input id="p-rest-days" type="number" min="0" max="14" value="1">
+        </label>
+      </div>
+      <div class="row checks">
+        <label><input type="checkbox" id="p-links" checked> 显示换乘衔接</label>
+        <label><input type="checkbox" id="p-guide" checked> 附上城市攻略</label>
+        <button type="submit" id="p-go" class="primary">开始规划</button>
+      </div>
+    </form>
+    <div id="p-status" class="status" role="status" aria-live="polite"></div>
+    <div id="p-results"></div>
+    <div id="p-routes" class="card" hidden></div>
+  </section>
+
+  <!-- ============ 地球模式 ============ -->
+  <section id="tab-globe" class="tab">
+    <div class="section-intro">
+      <p class="kicker">WORLD EXPLORER / 04</p>
+      <h2>世界经典环线与世界之最</h2>
+      <p>点地球上的城市卡片加入路线；左侧是 14 条世界经典环线，点一条镜头就飞过去并铺开沿途城市；右侧「世界之最」点一条会先带你到那个坐标再看介绍。选满城市后生成行程单：只给飞行距离、时间、时差与天数，票价请实时查询。</p>
+    </div>
+    <div class="globe-band">
+    <div class="globe-shell" id="globe-shell">
+      <div class="globe-col globe-col-left">
+        <div class="map-panel map-loops" id="globe-loops-panel">
+          <div class="panel-head">
+            <h3>世界经典环线</h3>
+            <button type="button" class="panel-toggle" data-target="globe-loops-panel" title="收起/展开">–</button>
+          </div>
+          <div class="panel-body" id="globe-loops"></div>
+        </div>
+      </div>
+
+      <div class="globe-stage" id="globe-stage">
+        <div id="globe-viz"></div>
+
+        <!-- 城市卡与悬停提示：globe.gl 会把 host 包进 .scene-container 并接管其内部，
+             所以这两层放在 #globe-viz 外面（布局上与它重合，坐标仍按 #globe-viz 算）。 -->
+        <div class="map-cards" id="globe-cards"></div>
+        <div class="map-tip" id="globe-tip" hidden></div>
+
+        <div class="globe-overlay">
+          <div class="globe-toolbar">
+            <label>经典环线 <select id="globe-loop-select"></select></label>
+            <button type="button" id="globe-loop-add" class="ghost-sm" disabled
+                    title="先在上面选一条环线">＋ 加进路线</button>
+            <button type="button" id="globe-home" class="ghost-sm">全球视角</button>
+            <button type="button" id="globe-auto" class="ghost-sm">暂停自转</button>
+            <button type="button" id="globe-records-toggle" class="ghost-sm">隐藏世界之最</button>
+            <button type="button" id="globe-icons-toggle" class="ghost-sm"
+              title="把地球上的城市卡与数值卡收起来，只看球与航线">隐藏图标</button>
+            <button type="button" id="globe-full" class="ghost-sm" title="全屏看地球（再点一次或按 Esc 退出）">⛶ 全屏</button>
+            <button type="button" id="globe-amap" class="ghost-sm">高德 3D</button>
+          </div>
+          <div id="globe-info" class="globe-info">点城市看简介并加入路线；点左侧环线看整条线；点右侧「世界之最」飞过去</div>
+          <div id="amap-info" class="globe-info amap-info" hidden></div>
+        </div>
+
+        <div class="city-guide" id="globe-guide" hidden>
+          <div class="cg-panel" id="gg-panel"></div>
+        </div>
+      </div>
+
+      <div class="globe-col globe-col-right">
+        <div class="map-panel map-records" id="globe-records-panel">
+          <div class="panel-head">
+            <h3>世界之最</h3>
+            <button type="button" class="panel-toggle" data-target="globe-records-panel" title="收起/展开">–</button>
+          </div>
+          <div class="panel-body">
+            <div class="rec-filter" id="globe-records-filter"></div>
+            <div id="globe-records"></div>
+          </div>
+        </div>
+
+        <div class="map-panel map-picked" id="globe-picked-panel">
+          <div class="panel-head">
+            <h3>已选城市 <span id="globe-picked-count">0</span></h3>
+            <button type="button" class="panel-toggle" data-target="globe-picked-panel" title="收起/展开">–</button>
+          </div>
+          <div class="panel-body">
+            <ol id="globe-picked-list" class="picked-list"></ol>
+            <p class="panel-hint" id="globe-picked-hint">点地球上的城市卡片加入路线；顺序可调，也可以直接从左侧环线一键载入。</p>
+            <div class="picked-actions">
+              <button type="button" id="globe-clear" class="ghost-sm">清空</button>
+              <button type="button" id="globe-plan-go" class="primary">生成世界行程单</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <div id="globe-plan"></div>
+  </section>
+
+  <!-- ============ 环线旅行 ============ -->
+  <section id="tab-loop" class="tab">
+    <div class="section-intro">
+      <p class="kicker">ROUTE BUILDER / 02</p>
+      <h2>把几座城市串成一条环线</h2>
+      <p>填想去的城市（至少两座），程序会在它们之间找一条当天可行的走法：可以闭合回到出发地，也可以单向走完。自由行会按停留天数把城市排开，避免同一天来回折返。</p>
+    </div>
+    <div class="loop-hubs" id="loop-hubs">
+      <div class="lh-lead">
+        <b>环线有三套，先挑一套看</b>
+        <span>本页只放「京冀穷游 Ultra」（整条线、逐日花费）；另外两套在别的页签，点一下直接过去。</span>
+      </div>
+      <button type="button" class="lh" data-goto-tab="map" data-goto-target="map-loops-panel">
+        <b>国内周边环线 · 26 条</b>
+        <em>省内/周边几站，能排出真实车次与票价 → 去「地图漫游」</em>
+      </button>
+      <button type="button" class="lh" data-goto-tab="globe" data-goto-target="globe-loops-panel">
+        <b>世界长线 · 20 条</b>
+        <em>跨洲大环线，只给天数/里程/建议（世界机票要实时查） → 去「地球模式」</em>
+      </button>
+      <button type="button" class="lh lh-here" id="lh-ultra">
+        <b>京冀穷游 Ultra · 64 条</b>
+        <em>北京/河北出发：34 小环线 + 30 大环线，逐日住哪花多少 → 就在本页展开</em>
+      </button>
+    </div>
+
+    <form id="loop-form" class="card">
+      <div class="form-heading"><span class="form-step">B</span><div><h3>想去的地方</h3><p>每行一座城市或车站，顺序可以拖动调整；「闭合环线」会让行程回到第一座城市。</p></div></div>
+      <div id="stop-list"></div>
+      <button type="button" id="add-stop" class="ghost">＋ 再加一座城市</button>
+      <div class="row">
+        <label>出发日期 <input id="l-date" type="date"></label>
+        <label>每天出发时间 <input id="l-time" type="time" value="08:00"></label>
+        <label>出行方式
+          <select id="l-mode">
+            <option value="mixed">混合（推荐）</option>
+            <option value="rail">只坐火车</option>
+            <option value="air">只坐飞机</option>
+            <option value="green">绿色出行：卧铺 / 硬座，少坐 4 小时以内的高铁</option>
+          </select>
+        </label>
+        <label>最多换乘
+          <select id="l-transfers">
+            <option>0</option><option>1</option><option selected>2</option><option>3</option>
+          </select>
+        </label>
+        <label>每天优化目标
+          <select id="l-objective">
+            <option value="fast">最快到达</option>
+            <option value="cheap">最省钱</option>
+          </select>
+        </label>
+        <label>换乘余量
+          <select id="l-slack">
+            <option value="1">1 小时余量</option>
+            <option value="2" selected>2 小时余量</option>
+            <option value="4">4 小时余量</option>
+            <option value="6">6 小时余量</option>
+          </select>
+        </label>
+        <label>中转等待
+          <select id="l-buffer">
+            <option value="0">0 分钟</option>
+            <option value="15">15 分钟</option>
+            <option value="30" selected>30 分钟</option>
+            <option value="60">60 分钟</option>
+          </select>
+        </label>
+      </div>
+      <div class="row checks">
+        <label><input type="checkbox" id="l-closed" checked> 闭合环线（回到出发地）</label>
+        <label><input type="checkbox" id="l-free"> 只按顺序走（不加 TSP 优化）</label>
+        <label><input type="checkbox" id="l-tour"> 旅游环线（按每站停留排开）</label>
+        <label>最多 <input type="number" id="l-maxdays" min="2" max="60" value="10" style="width:70px"> 天</label>
+        <label>沿途停留城市数 <input type="number" id="l-city-count" min="2" max="20" value="5" style="width:70px"></label>
+        <label>每座城市休息天数 <input type="number" id="l-rest-days" min="0" max="14" value="1" style="width:70px"></label>
+        <label><input type="checkbox" id="l-links" checked> 显示换乘衔接</label>
+        <label><input type="checkbox" id="l-guide" checked> 附上城市攻略</label>
+        <button type="submit" id="l-go" class="primary">规划环线</button>
+        <button type="button" id="l-ultra" class="ghost">环线 Ultra 版</button>
+      </div>
+    </form>
+    <div id="l-status" class="status" role="status" aria-live="polite"></div>
+
+    <div id="ultra-panel" class="card" hidden>
+      <div class="ultra-head">
+        <h3>环线 Ultra · 北京出发 / 河北出发的穷游环线</h3>
+        <button type="button" id="ultra-close" class="ghost-sm">收起 Ultra</button>
+      </div>
+      <p class="hint">这里是<b>整条环线</b>（几天走完、每天住哪花多少、哪里能省），不是单点走法。
+        <b>小环线</b>是省内/周边几站；<b>大环线</b>从北京/河北出发沿大动脉跨省走（≥8 天、≥6 城），
+        比如「张家口 → 济南 → 南京 → 无锡 → 苏州 → 上海 → 杭州」，把二十多小时的直达拆成一段段坐下来。
+        价格为公开攻略区间、不是实时票价；每条都有来源与可信度，低可信度的写明了不确定在哪。
+        点开一条看逐日安排，带「看城内动线」的可以直接跳到那天的城市动线。</p>
+      <div class="row">
+        <label>出发地 <select id="ultra-origin"></select></label>
+        <label>最多天数 <input id="ultra-days" type="number" min="0" max="20" value="0" style="width:74px"
+          placeholder="不限"></label>
+        <label>预算上限 <input id="ultra-budget" type="number" min="0" step="100" value="0" style="width:84px"
+          placeholder="不限"></label>
+        <label>排序
+          <select id="ultra-sort">
+            <option value="value">日均最省</option>
+            <option value="budget">总价最低</option>
+            <option value="days">天数最短</option>
+            <option value="origin">按出发地</option>
+            <option value="scale">大环线优先</option>
+          </select>
+        </label>
+        <label>范围
+          <select id="ultra-scale">
+            <option value="">全部（小环线 + 大环线）</option>
+            <option value="large">只看大环线（跨省 ≥8 天）</option>
+            <option value="small">只看小环线（省内几站）</option>
+          </select>
+        </label>
+        <button type="button" id="ultra-go" class="ghost">筛一下</button>
+      </div>
+      <div id="ultra-count" class="rt-count"></div>
+      <div id="ultra-list" class="rt-list"></div>
+    </div>
+    <div id="l-results"></div>
+  </section>
+
+  <!-- ============ 地图漫游 ============ -->
+  <section id="tab-map" class="tab">
+    <div class="section-intro">
+      <p class="kicker">MAP ROAMER / 03</p>
+      <h2>在地图上挑城市，拼成一条线</h2>
+      <p>拖拽旋转、滚轮缩放、双击放大；悬停城市卡片看半日游建议，点一下就把城市按顺序编进路线。三条出行方式随时切换：公共交通给乘车表，自驾给每天的车程与落脚点，租车再给一版费用区间。</p>
+    </div>
+
+    <div class="travel-modes" id="travel-modes" role="tablist" aria-label="出行方式">
+      <button type="button" class="tm-btn active" data-mode="transit" role="tab" aria-selected="true">
+        <span class="tm-icon">🚆</span><b>公共交通</b><em>火车 / 高铁 / 飞机 / 长途汽车，给乘车表</em>
+      </button>
+      <button type="button" class="tm-btn" data-mode="drive" role="tab" aria-selected="false">
+        <span class="tm-icon">🚗</span><b>自驾</b><em>按天给车程 / 落脚点 / 加油与过路费</em>
+      </button>
+      <button type="button" class="tm-btn" data-mode="rental" role="tab" aria-selected="false">
+        <span class="tm-icon">🔑</span><b>租车</b><em>自驾路线 + 租车费用区间与取还车建议</em>
+      </button>
+    </div>
+    <p class="travel-mode-hint" id="travel-mode-hint"></p>
+
+    <div class="map-shell">
+      <div class="map-stage" id="map-stage">
+        <canvas id="map-canvas"></canvas>
+        <div class="map-glow" aria-hidden="true"></div>
+        <div class="map-cards" id="map-cards"></div>
+        <div class="map-cards" id="map-loops-layer"></div>
+        <div class="map-tip" id="map-tip" hidden></div>
+        <div class="map-error" id="map-error" hidden></div>
+        <div class="city-guide" id="city-guide" hidden>
+          <div class="cg-panel" id="cg-panel"></div>
+        </div>
+
+        <div class="map-regions" id="map-regions"></div>
+
+        <div class="map-panel map-loops" id="map-loops-panel">
+          <div class="panel-head">
+            <h3>经典环线</h3>
+            <button type="button" class="panel-toggle" data-target="map-loops-panel" title="收起/展开">–</button>
+          </div>
+          <div class="panel-body" id="map-loops"></div>
+        </div>
+
+        <div class="map-panel map-picked" id="map-picked-panel">
+          <div class="panel-head">
+            <h3>已选城市 <span id="map-picked-count">0</span></h3>
+            <button type="button" class="panel-toggle" data-target="map-picked-panel" title="收起/展开">–</button>
+          </div>
+          <div class="panel-body">
+            <ol id="map-picked" class="picked-list"></ol>
+            <p class="panel-hint" id="map-picked-hint">点地图上的城市卡片加入路线；顺序可调，也可以直接从图例上方的环线一键载入。</p>
+            <div class="picked-actions">
+              <button type="button" id="map-clear" class="ghost-sm">清空</button>
+              <button type="button" id="map-optimize" class="ghost-sm" title="按顺序最短重排这几座城市">自动排序</button>
+              <button type="button" id="map-finish" class="primary">生成乘车表</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="map-controls">
+          <button type="button" id="map-home" class="ghost-sm">全国视角</button>
+          <button type="button" id="map-reset" class="ghost-sm">重置</button>
+          <button type="button" id="map-icons-toggle" class="ghost-sm"
+            title="把地图上的城市卡、点位标签收起来，只看地形与路线">隐藏图标</button>
+          <button type="button" id="map-rotate-left" class="ghost-sm" title="向左转一点视角">⟲</button>
+          <button type="button" id="map-rotate-right" class="ghost-sm" title="向右转一点视角">⟳</button>
+          <button type="button" id="map-full" class="ghost-sm" title="全屏查看地图（Esc 退出）">⛶ 全屏</button>
+          <label class="pitch-box">仰角
+            <input id="map-pitch" type="range" min="8" max="62" value="20">
+          </label>
+        </div>
+        <div class="map-legend" id="map-legend">拖动旋转 · 滚轮缩放 · 双击放大 / 单击城市卡加入路线 / Esc 逐层退出</div>
+      </div>
+    </div>
+
+    <form id="map-form" class="card map-form-hidden">
+      <div class="form-heading"><span class="form-step">C</span><div><h3>已经选好的城市</h3><p>这里是上面地图里点出来的顺序；也可以直接改日期、出行方式与换乘余量，再生成乘车表。</p></div></div>
+      <div class="row">
+        <label>出发日期 <input id="m-date" type="date"></label>
+        <label>每天出发时间 <input id="m-time" type="time" value="08:00"></label>
+        <label class="transit-only">出行方式
+          <select id="m-mode">
+            <option value="mixed">混合（推荐）</option>
+            <option value="rail">只坐火车</option>
+            <option value="air">只坐飞机</option>
+            <option value="green">绿色出行：卧铺 / 硬座，少坐 4 小时以内的高铁</option>
+          </select>
+        </label>
+        <label class="transit-only">每天优化目标
+          <select id="m-objective">
+            <option value="fast">最快到达</option>
+            <option value="cheap">最省钱</option>
+          </select>
+        </label>
+        <label class="transit-only">中转等待
+          <select id="m-buffer">
+            <option value="0">0 分钟</option>
+            <option value="15">15 分钟</option>
+            <option value="30" selected>30 分钟</option>
+            <option value="60">60 分钟</option>
+          </select>
+        </label>
+        <label class="drive-only" id="m-car-field">车型
+          <select id="m-car">
+            <option value="经济型">经济型（轿车 / 紧凑型，最省油）</option>
+            <option value="SUV" selected>SUV（空间大，适合长途与山路）</option>
+            <option value="商务">商务型 / MPV（人多行李多时更舒服）</option>
+          </select>
+        </label>
+        <label class="drive-only" id="m-maxdrive-field">每天最多开车
+          <select id="m-maxdrive">
+            <option value="4">4 小时（轻松，留半天玩）</option>
+            <option value="5">5 小时</option>
+            <option value="6.5" selected>6.5 小时（常规，安全上限）</option>
+            <option value="8">8 小时（赶路，注意疲劳）</option>
+          </select>
+        </label>
+        <label id="m-maxdays-field" class="tour-hidden transit-only">最多几天
+          <input id="m-maxdays" type="number" min="2" max="90" value="14" style="width:80px">
+        </label>
+      </div>
+      <div class="row checks">
+        <label><input type="checkbox" id="m-closed" checked> 闭合环线（回到出发地）</label>
+        <label class="transit-only"><input type="checkbox" id="m-budget"> 只看预算内的方案（按最便宜的排）</label>
+        <label class="transit-only"><input type="checkbox" id="m-links" checked> 显示换乘衔接</label>
+        <label class="transit-only"><input type="checkbox" id="m-guide" checked> 附上城市攻略</label>
+        <button type="submit" id="m-go" class="primary">生成乘车表</button>
+      </div>
+    </form>
+    <div id="m-status" class="status" role="status" aria-live="polite"></div>
+    <div id="map-rental"></div>
+    <div id="map-guides"></div>
+    <div id="map-results"></div>
+  </section>
+
+  <!-- ============ 数据台 ============ -->
+  <section id="tab-data" class="tab">
+    <div class="section-intro">
+      <p class="kicker">DATA DESK / 05</p>
+      <h2>数据台：自动检查，一键补齐</h2>
+      <p>程序自己判断哪些日期缺数据、哪些是拷贝来的、哪些车次异常，列成清单；写库和真爬都要你点一下才执行，
+        真爬 12306 是后台任务，耗时取决于车次数和限速冷却；随时可以取消、断点续爬。</p>
+    </div>
+
+    <nav class="data-jump" id="data-jump" aria-label="数据台快速跳转">
+      <span class="dj-label">直达</span>
+      <button type="button" class="dj" data-jump="data-routes">路线库</button>
+      <button type="button" class="dj" data-jump="data-trips">我的行程</button>
+      <button type="button" class="dj" data-jump="data-poi">城内点位</button>
+      <button type="button" class="dj" data-jump="data-guide">城市动线</button>
+      <button type="button" class="dj" data-jump="data-import">导入素材</button>
+      <button type="button" class="dj" data-jump="data-dates">日期与来源</button>
+      <button type="button" class="dj" data-jump="data-crawl">真爬</button>
+      <button type="button" class="dj" data-jump="data-debug">查班次</button>
+      <span class="dj-right">
+        <label class="dj-quick">直接查动线
+          <input id="jump-city" placeholder="城市名，如 承德" list="jump-city-list">
+          <datalist id="jump-city-list"></datalist>
+        </label>
+        <button type="button" id="jump-city-go" class="ghost-sm">跳过去并查</button>
+        <button type="button" id="jump-top" class="ghost-sm" title="回到数据台顶部">↑ 顶部</button>
+      </span>
+    </nav>
+
+    <div class="card" id="data-health">
+      <h3>数据可信度（体检 + 覆盖率）</h3>
+      <div id="data-summary"></div>
+      <div id="cred-grid" class="cred-grid"></div>
+      <p id="flight-data-hint" class="hint"></p>
+      <div id="health-list" class="health-list"></div>
+    </div>
+
+    <div class="card" id="data-dates">
+      <h3>日期与来源</h3>
+      <p class="hint">来源分档很重要：<b>导入</b>和<b>真爬</b>是真实时刻表，<b>拷贝</b>只是同一天的复制品
+        —— 隔日开行、周末加开、临时调图都体现不出来，重要出行日建议真爬。</p>
+      <div class="row">
+        <label>补齐起 <input id="m-start" type="date"></label>
+        <label>到 <input id="m-end" type="date"></label>
+        <button type="button" id="m-plan-fill" class="ghost">检查缺口</button>
+        <button type="button" id="m-refresh">刷新</button>
+      </div>
+      <div id="m-plan" class="maint-plan" hidden></div>
+      <table id="data-table">
+        <thead><tr><th>日期</th><th>车次数</th><th>来源</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="data-crawl">
+      <h3>真爬某一天（后台任务，需确认）</h3>
+      <p class="hint">两种规模：<b>定向爬取</b>只爬跟目标城市相关的 OD（默认 320 对），
+        日常补数据够用；<b>全国爬取</b>是 6006 对，耗时取决于车次数和限速冷却。
+        时刻表本身有隔日/调图偏差、只作参考，所以定向通常更划算。</p>
+      <div class="row">
+        <label>日期 <input id="crawl-date" type="date"></label>
+        <label>目标城市（留空＝全国，空格分隔） <input id="crawl-cities" placeholder="如：北京 上海 杭州" style="min-width:230px"></label>
+        <label>OD 上限 <input id="crawl-pairs" type="number" min="10" max="6006" value="320" style="width:90px"></label>
+        <label>最小请求间隔(秒) <input id="crawl-delay" type="number" step="0.1" min="0.1" max="30" value="1" style="width:90px"></label>
+        <label class="inline"><input type="checkbox" id="crawl-resume" checked> 接着上次爬（断点续爬）</label>
+        <button type="button" id="crawl-preview" class="ghost">预览要爬哪些 OD</button>
+        <button type="button" id="crawl-suggest" class="ghost">建议爬哪些城市</button>
+        <button type="button" id="crawl-start" class="primary">开始真爬</button>
+        <button type="button" id="crawl-cancel" class="ghost-sm">取消</button>
+      </div>
+      <div id="crawl-resume-box" class="resume-box" hidden></div>
+      <div id="crawl-preview-box" class="maint-plan" hidden></div>
+      <p class="hint">同一时刻只允许一个爬取任务。默认间隔 1 秒，遇限速自动降速并显示冷却倒计时，等待期间也可取消。<b>进度逐对 OD 写进本地数据库</b>：断电、关窗口、
+        进程被杀都不会丢 —— 回来把日期填成同一天、勾着「接着上次爬」再点开始，就只补没做完的那些
+        （已入库的车次也不会重复抓）。上面那张进度条来自数据库，不是内存里的任务。</p>
+      <div id="crawl-progress" class="crawl-progress" hidden></div>
+      <pre id="crawl-log" class="crawl-log" hidden></pre>
+    </div>
+
+    <div class="card" id="data-routes">
+      <h3>省钱 / 舒适 / 巧思路线（参考）</h3>
+      <p class="hint">这里收的是「有人真走过、值得一说的走法」：什么时候该坐夜车、哪段买硬座、住城外更划算，
+        以及稍微多花钱但顺路多玩的巧思走法。
+        <b>价格是公开攻略的区间、不是实时票价</b>，每条都标了口径日期与来源；时刻与票价请以 12306 为准。</p>
+      <div class="row">
+        <label>城市 <input id="rt-city" placeholder="如：拉萨" style="min-width:150px"></label>
+        <label>排序
+          <select id="rt-sort">
+            <option value="value">性价比</option>
+            <option value="clever">最巧思（别出心裁）</option>
+            <option value="cheap">最省钱</option>
+            <option value="comfort">最舒适</option>
+            <option value="hours">最快</option>
+          </select>
+        </label>
+        <label>类型
+          <select id="rt-kind">
+            <option value="">全部</option>
+            <option value="oneway">单向</option>
+            <option value="loop">环线</option>
+          </select>
+        </label>
+        <label>每页 <input id="rt-page" type="number" min="6" max="60" value="12" style="width:78px"></label>
+        <button type="button" id="rt-go" class="ghost">查路线</button>
+        <button type="button" id="rt-expand-all" class="ghost-sm">全部展开</button>
+        <button type="button" id="rt-collapse-all" class="ghost-sm">全部收起</button>
+      </div>
+      <div id="rt-filters" class="rt-filters"></div>
+      <div id="rt-count" class="rt-count"></div>
+      <div id="rt-list" class="rt-list"></div>
+      <div class="rt-more"><button type="button" id="rt-more" class="ghost" hidden>载入更多</button></div>
+    </div>
+
+    <div class="card" id="data-trips">
+      <h3>我的行程（把路线排成乘车表并存档）</h3>
+      <p class="hint">「排成行程」是把参考路线交给本地时刻表引擎，排出逐日乘车表；这里把它<b>存下来</b>：
+        同一份可以反复看、可以对比不同日期、可以导出。<b>行程是本地时刻表算出来的参考，不是实时车次</b>；
+        排不出来的条目（同城选站类、落脚点没有铁路站、缺数据的方向）会单独列出来，不会静默消失。</p>
+      <div class="row">
+        <label>出行日 <input id="tp-date" type="date"></label>
+        <label>每站停留
+          <select id="tp-stay">
+            <option value="">自动（按素材时长）</option>
+            <option value="transit">只中转</option>
+            <option value="one_night">住一晚</option>
+            <option value="two_nights">住两晚</option>
+          </select>
+        </label>
+        <label class="inline"><input type="checkbox" id="tp-replace"> 覆盖同一天的旧存档</label>
+        <button type="button" id="tp-build" class="primary">把整库排成行程并存档</button>
+        <button type="button" id="tp-cancel" class="ghost-sm">取消后台任务</button>
+        <button type="button" id="tp-refresh" class="ghost-sm">刷新列表</button>
+        <button type="button" id="tp-export" class="ghost-sm">导出 JSON</button>
+      </div>
+      <div id="tp-progress" class="crawl-progress" hidden></div>
+      <pre id="tp-log" class="crawl-log" hidden></pre>
+      <div id="tp-status" class="status" role="status" aria-live="polite"></div>
+      <div id="tp-count" class="rt-count"></div>
+      <div id="tp-list" class="rt-list"></div>
+      <div class="rt-more"><button type="button" id="tp-more" class="ghost" hidden>载入更多</button></div>
+      <div id="tp-skips" class="imp-report" hidden></div>
+    </div>
+
+    <div class="card" id="data-poi">
+      <h3>城内点位（只读预览，先不画地图）</h3>
+      <p class="hint">城市攻略里提到的「看点」本身是没有坐标的散文，这一步只干一件事：
+        <b>按名单把坐标补齐</b> —— 239 城约 900 个看点，1 个名字 1 次请求，查不到的记「未命中」，不猜坐标。
+        命中率满意了再谈要不要画城内动线。<br>
+        坐标来自高德检索结果，<b>只用于预览与示意图，不做导航</b>；数据只在本地自用缓存、不随工具分发。</p>
+      <div class="row">
+        <label>城市 <input id="poi-city" placeholder="如：洛阳" style="min-width:130px"></label>
+        <label class="inline"><input type="checkbox" id="poi-only-miss"> 只看未命中</label>
+        <label class="inline"><input type="checkbox" id="poi-refresh"> 重查已落库的</label>
+        <label>每页 <input id="poi-page" type="number" min="6" max="60" value="12" style="width:74px"></label>
+        <button type="button" id="poi-go" class="ghost">查点位</button>
+        <button type="button" id="poi-run" class="primary">按名单补坐标</button>
+        <button type="button" id="poi-cancel" class="ghost-sm">取消后台任务</button>
+        <button type="button" id="poi-export" class="ghost-sm">导出 JSON</button>
+      </div>
+      <div id="poi-progress" class="crawl-progress" hidden></div>
+      <pre id="poi-log" class="crawl-log" hidden></pre>
+      <div id="poi-status" class="status" role="status" aria-live="polite"></div>
+      <div id="poi-count" class="rt-count"></div>
+      <div id="poi-list" class="rt-list"></div>
+      <div class="rt-more"><button type="button" id="poi-more" class="ghost" hidden>载入更多</button></div>
+    </div>
+
+    <div class="card" id="data-guide">
+      <h3>城市停留动线（散文 → 带坐标的动线）</h3>
+      <p class="hint">把城市攻略里那几段散文按天对齐成<b>有序点位</b>（名字 → 坐标，顺序照散文里的先后），
+        再按需算相邻两点之间的市内腿（「几号线、在哪上、在哪下、几分钟」）。<br>
+        <b>市内腿是高德实时查询的结果，不是时刻表</b>；下面的图只是按经纬度摆位的<b>示意图，不做导航</b>；
+        对不上的名字保持纯文字、不猜坐标。首次打开一座城会自动抓 4 页 POI 池
+        （步行街/老街这类在高德那里不算「景点」，只有池子才捞得到）。</p>
+      <div class="row">
+        <label>城市 <input id="guide-city" placeholder="如：哈尔滨" style="min-width:130px"></label>
+        <label>每类抓几页 <input id="guide-pages" type="number" min="1" max="5" value="1" style="width:76px"></label>
+        <button type="button" id="guide-go" class="primary">看这座城的动线</button>
+        <button type="button" id="guide-full" class="ghost-sm"
+          title="切到地图漫游并打开这座城的完整攻略（散文版）">看完整攻略（散文版）</button>
+        <button type="button" id="guide-pool" class="ghost-sm">重抓 POI 池</button>
+      </div>
+      <div id="guide-status" class="status" role="status" aria-live="polite"></div>
+      <div id="guide-summary" class="rt-count"></div>
+      <div id="guide-days" class="rt-list"></div>
+    </div>
+
+    <div class="card" id="data-import">
+      <h3>一键导入路线素材</h3>
+      <p class="hint">把整理好的 JSON 粘进来（或选文件），先<b>校验</b>再入库：缺来源、缺坐标、时间对不上、
+        巧思高分没写理由都会被拦下。导入默认进<b>暂存区</b>（先审后收），点「正式化」才合并进正式素材并归档原文件。</p>
+      <div class="row">
+        <label>素材文件 <input id="imp-file" type="file" accept=".json,application/json"></label>
+        <label class="inline"><input type="checkbox" id="imp-promote"> 校验通过后直接上线</label>
+        <button type="button" id="imp-check" class="ghost">先校验（不写库）</button>
+        <button type="button" id="imp-apply" class="primary">导入</button>
+        <button type="button" id="imp-staged" class="ghost-sm">看暂存区</button>
+        <button type="button" id="imp-promote-btn" class="ghost-sm">把暂存区正式化</button>
+      </div>
+      <textarea id="imp-text" class="imp-text" rows="7" placeholder='粘贴形如 {"updated":"2026-09-22","routes":[ ... ]} 的内容；也可以只贴 routes 数组'></textarea>
+      <div id="imp-status" class="status" role="status" aria-live="polite"></div>
+      <div id="imp-report" class="imp-report" hidden></div>
+      <div id="imp-staged-box" class="imp-report" hidden></div>
+    </div>
+
+    <div class="card" id="data-debug">
+      <h3>查某天的班次（调试用）</h3>
+      <div class="row">
+        <label>出发地<select id="c-from"></select></label>
+        <label>日期 <input id="c-to" type="date"></label>
+        <button type="button" id="c-go" class="primary">查班次</button>
+      </div>
+      <div id="c-status" class="status" role="status" aria-live="polite"></div>
+      <p class="hint">班次数据来自公开时刻表，可能有一天到三天的误差，买票前请再核对一次；车次与票价请以 12306、航司或车站窗口为准。</p>
+    </div>
+  </section>
+</main>
+
+<footer>大交通换乘规划 · 数据来自公开时刻表与地图服务（12306 / 航司 / 高德地图） · 出行前请以官方信息为准</footer>
+<script src="/static/app.js?v=58"></script>
+<script type="module" src="/static/map.js?v=57"></script>
+<script src="/static/vendor/globe.gl.min.js"></script>
+<script src="/static/globe3d.js?v=57"></script>
+</body>
+</html>

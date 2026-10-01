@@ -1,0 +1,557 @@
+{
+ "北京": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "上海": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "西安": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "香港": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "台北": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "东京": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "京都": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "大阪": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "首尔": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "曼谷": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "清迈": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "新加坡": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "吉隆坡": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "巴厘岛": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "河内": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "胡志明市": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "暹粒": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "德里": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "阿格拉": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "加德满都": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "马累": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "撒马尔罕": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "阿拉木图": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "迪拜": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "阿布扎比": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "多哈": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "伊斯坦布尔": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "卡帕多奇亚": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "耶路撒冷": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "佩特拉": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "悉尼": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "墨尔本": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "凯恩斯": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "奥克兰": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "皇后镇": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "楠迪": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "伦敦": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "巴黎": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "罗马": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "威尼斯": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "佛罗伦萨": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "米兰": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "巴塞罗那": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "马德里": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "里斯本": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "阿姆斯特丹": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "布鲁塞尔": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "柏林": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "慕尼黑": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "布拉格": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "维也纳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "布达佩斯": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "雅典": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "圣托里尼": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "苏黎世": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "因特拉肯": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "哥本哈根": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "斯德哥尔摩": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "雷克雅未克": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "莫斯科": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "圣彼得堡": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "杜布罗夫尼克": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "纽约": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "华盛顿": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "旧金山": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "洛杉矶": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "拉斯维加斯": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "温哥华": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "班夫": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "多伦多": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "墨西哥城": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "里约热内卢": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "库斯科": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "开罗": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "卢克索": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "马拉喀什": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "开普敦": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "内罗毕": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "桑给巴尔": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "维多利亚瀑布": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "赫尔辛基": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "乌斯怀亚": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "朗伊尔城": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "罗瓦涅米": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "摩尔曼斯克": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "南极半岛": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "努克": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "ushuaia": {
+  "record": true,
+  "name": "乌斯怀亚—世界尽头"
+ },
+ "petra": {
+  "record": true,
+  "name": "佩特拉古城"
+ },
+ "angkor": {
+  "record": true,
+  "name": "吴哥窟"
+ },
+ "forbidden_city": {
+  "record": true,
+  "name": "故宫"
+ },
+ "taj_mahal": {
+  "record": true,
+  "name": "泰姬陵"
+ },
+ "giza": {
+  "record": true,
+  "name": "金字塔与狮身人面像"
+ },
+ "machu_picchu": {
+  "record": true,
+  "name": "马丘比丘"
+ },
+ "burj_khalifa": {
+  "record": true,
+  "name": "哈利法塔"
+ },
+ "panama_canal": {
+  "record": true,
+  "name": "巴拿马运河"
+ },
+ "channel_tunnel": {
+  "record": true,
+  "name": "英法海底隧道"
+ },
+ "great_wall": {
+  "record": true,
+  "name": "长城"
+ },
+ "qinghai_tibet_railway": {
+  "record": true,
+  "name": "青藏铁路"
+ },
+ "iceland_aurora": {
+  "record": true,
+  "name": "冰岛极光带"
+ },
+ "oymyakon": {
+  "record": true,
+  "name": "奥伊米亚康"
+ },
+ "greenland_ice": {
+  "record": true,
+  "name": "格陵兰冰盖"
+ },
+ "death_valley": {
+  "record": true,
+  "name": "死亡谷"
+ },
+ "atacama": {
+  "record": true,
+  "name": "阿塔卡马沙漠"
+ },
+ "uyuni": {
+  "record": true,
+  "name": "乌尤尼盐沼"
+ },
+ "amazon_rainforest": {
+  "record": true,
+  "name": "亚马逊雨林"
+ },
+ "santorini_caldera": {
+  "record": true,
+  "name": "圣托里尼火山口"
+ },
+ "great_barrier_reef": {
+  "record": true,
+  "name": "大堡礁"
+ },
+ "angel_falls": {
+  "record": true,
+  "name": "安赫尔瀑布"
+ },
+ "nile": {
+  "record": true,
+  "name": "尼罗河"
+ },
+ "sahara": {
+  "record": true,
+  "name": "撒哈拉沙漠"
+ },
+ "dead_sea": {
+  "record": true,
+  "name": "死海"
+ },
+ "everest": {
+  "record": true,
+  "name": "珠穆朗玛峰"
+ },
+ "victoria_falls": {
+  "record": true,
+  "name": "维多利亚瀑布"
+ },
+ "baikal": {
+  "record": true,
+  "name": "贝加尔湖"
+ },
+ "son_doong": {
+  "record": true,
+  "name": "韩松洞"
+ },
+ "mariana": {
+  "record": true,
+  "name": "马里亚纳海沟"
+ }
+}

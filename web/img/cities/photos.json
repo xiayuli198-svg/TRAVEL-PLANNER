@@ -1,0 +1,1197 @@
+{
+ "上海": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "北京": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "广州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "成都": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "西安": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "厦门": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "青岛": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "拉萨": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "杭州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "桂林": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "酒泉": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "阿坝": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "香港": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "三亚": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "丽江": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "南京": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "台北": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "喀什": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "张家界": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "哈尔滨": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "泉州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "泰安": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "苏州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "重庆": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "伊犁": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "迪庆": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "大理": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "林芝": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "武汉": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "沈阳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "济南": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "深圳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "甘孜": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "花莲": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "台南": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "大连": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "威海": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "长沙": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "阿勒泰": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "乌鲁木齐": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "天津": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "洛阳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "福州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "西双版纳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "西宁": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "台东": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "黄山": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "上饶": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "兰州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "南宁": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "承德": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "昆明": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "湘西": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "澳门": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "烟台": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "绍兴": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "乐山": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "南投": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "吐鲁番": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "大同": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "新北": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "无锡": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "景德镇": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "海口": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "长春": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "黔东南": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "九江": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "北海": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "台中": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "呼伦贝尔": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "嘉义": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "屏东": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "扬州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "淄博": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "潮州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "甘南": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "贵阳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "佛山": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "南平": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "宁波": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "安顺": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "宜昌": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "开封": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "澎湖": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "红河": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "银川": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "高雄": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "保山": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "凉山": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "南昌": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "嘉兴": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "宜兰": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "延边": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "张掖": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "恩施": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "日喀则": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "济宁": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "焦作": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "遵义": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "阿克苏": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "黔南": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "十堰": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "天水": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "潍坊": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "舟山": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "铜仁": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "阿里": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "嘉峪关": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "太原": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "山南": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "岳阳": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "巴音郭楞": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "忻州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "日照": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "柳州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "神农架": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "郑州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "黔西南": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "中卫": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "合肥": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "吉林": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "宜宾": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "晋中": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "海西州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "肇庆": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "荆州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "呼和浩特": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "安阳": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "延安": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "文山": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "江门": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "湖州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "牡丹江": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "自贡": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "襄阳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "赣州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "和田": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "基隆": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "惠州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "池州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "漳州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "玉树州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "衡阳": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "镇江": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "临沂": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "丹东": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "南阳": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "吉安": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "哈密": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "大兴安岭": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "宁德": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "宝鸡": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "常州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "彰化": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "新竹": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "毕节": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "海南州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "温州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "郴州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "阿拉善盟": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "龙岩": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "信阳": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "六盘水": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "台州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "常德": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "枣庄": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "桃园": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "汉中": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "汕头": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "苗栗": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "锡林郭勒": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "临汾": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "云林": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "克拉玛依": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "徐州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "昌都": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "渭南": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "白山": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "秦皇岛": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "绵阳": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "聊城": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "金华": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "韶关": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "齐齐哈尔": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "伊春": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "南充": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "本溪": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "武威": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "湛江": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "石家庄": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "芜湖": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "运城": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "那曲": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "锦州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "丽水": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "保定": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "南通": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "大庆": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "攀枝花": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "榆林": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "海北州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "珠海": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "赤峰": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "鄂尔多斯": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "黑河": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "张家口": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "衢州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "邯郸": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "鞍山": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "佳木斯": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "包头": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "唐山": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "安庆": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "宣城": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "平凉": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "果洛州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "梅州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "盘锦": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "葫芦岛": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "贺州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "通化": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "长治": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "东营": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "乌兰察布": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "抚顺": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "营口": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "黄南州": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "巴彦淖尔": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "文昌": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "松原": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "通辽": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "庆阳": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "德州": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "海东": {
+  "day": true,
+  "night": true,
+  "night_city": true
+ },
+ "莆田": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "三明": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "铁岭": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "万宁": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ },
+ "辽阳": {
+  "day": true,
+  "night": false,
+  "night_city": false
+ }
+}

@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大交通换乘规划 · 项目报告书 · 横板</title>
+<style>
+  :root {
+    --ink:#e9f4f0; --muted:#9db4ac;
+    --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
+    --surface:rgba(255,255,255,.05); --surface2:rgba(255,255,255,.03);
+    --surface3:rgba(255,255,255,.08);
+    --primary:#2fd0b4; --primary-deep:#7ef0d0; --primary-soft:rgba(126,240,208,.12);
+    --accent:#e8b45a; --accent-ink:#f2c97e;
+    --good:#7ee2b0; --bad:#ff9b93;
+    --shadow:0 26px 64px rgba(0,0,0,.45);
+    --mono:"Cascadia Code","JetBrains Mono",Consolas,"Courier New",monospace;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; overflow:hidden; }
+  body { margin:0; background:#06100e; color:var(--ink); line-height:1.7;
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased; }
+  ::selection { background:rgba(47,208,180,.35); color:#f2fbf8; }
+
+  /* ============ 背景层（质感） ============ */
+  .bg-grid { position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.06) 1px, transparent 1.4px);
+    background-size:30px 30px; }
+  .bg-glow { position:fixed; inset:0; z-index:0; pointer-events:none; filter:blur(90px); will-change:transform; }
+  .bg-glow .g1, .bg-glow .g2, .bg-glow .g3 { position:absolute; border-radius:50%; }
+  .bg-glow .g1 { width:48vw; height:48vw; top:-14vw; left:-10vw; opacity:.5;
+    background:radial-gradient(circle,#0f6b5c,transparent 70%); animation:drift1 19s ease-in-out infinite alternate; }
+  .bg-glow .g2 { width:40vw; height:40vw; bottom:-16vw; right:-8vw; opacity:.34;
+    background:radial-gradient(circle,rgba(180,119,10,.5),transparent 70%); animation:drift2 23s ease-in-out infinite alternate; }
+  .bg-glow .g3 { width:34vw; height:34vw; top:30%; left:42%; opacity:.28;
+    background:radial-gradient(circle,rgba(16,64,88,.7),transparent 70%); animation:drift3 27s ease-in-out infinite alternate; }
+  @keyframes drift1 { to { transform:translate3d(6vw,4vw,0) scale(1.1); } }
+  @keyframes drift2 { to { transform:translate3d(-5vw,-4vw,0) scale(1.08); } }
+  @keyframes drift3 { to { transform:translate3d(4vw,-5vw,0) scale(.92); } }
+  .bg-routes { position:fixed; inset:0; width:100%; height:100%; z-index:0; opacity:.28;
+    pointer-events:none; will-change:transform; }
+  .bg-routes .arcs path { fill:none; stroke:rgba(126,240,208,.35); stroke-width:1.4;
+    stroke-dasharray:5 9; animation:dashMove 15s linear infinite; }
+  .bg-routes .arcs path:nth-child(2n) { animation-duration:22s; stroke-width:1; }
+  .bg-routes .nodes circle { fill:rgba(126,240,208,.5); animation:nodePulse 3.4s ease-in-out infinite; }
+  .bg-routes .nodes circle:nth-child(2n) { animation-delay:1.1s; }
+  .bg-routes .nodes circle:nth-child(3n) { animation-delay:2.2s; }
+  @keyframes dashMove { to { stroke-dashoffset:-280; } }
+  @keyframes nodePulse { 0%,100% { opacity:.2; } 50% { opacity:.8; } }
+  .grain { position:fixed; inset:0; z-index:95; pointer-events:none; opacity:.05;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.6'/></svg>"); }
+
+  /* ============ 顶栏 ============ */
+  .topbar { position:fixed; top:0; left:0; right:0; z-index:70; display:flex; align-items:center;
+    gap:20px; height:64px; padding:0 22px; background:rgba(6,16,14,.72);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border-bottom:1px solid rgba(255,255,255,.08); }
+  .brand { flex:none; display:flex; align-items:center; gap:10px; font-size:13px;
+    font-weight:800; letter-spacing:.14em; color:#cfe6de; white-space:nowrap; }
+  .brand .bd { width:9px; height:9px; border-radius:3px; flex:none;
+    background:linear-gradient(135deg,#2fd0b4,#e8b45a); transform:rotate(45deg);
+    box-shadow:0 0 12px rgba(47,208,180,.8); }
+  .brand small { font-weight:600; color:#7d9a90; letter-spacing:.08em; font-size:11.5px; }
+  .tabs { position:relative; flex:1; min-width:0; display:flex; gap:3px; overflow-x:auto;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { position:relative; flex:none; display:flex; align-items:center; gap:7px; padding:9px 13px;
+    border:0; background:transparent; color:#93aea6; font:600 12.5px "Segoe UI","Microsoft YaHei",sans-serif;
+    letter-spacing:.02em; white-space:nowrap; border-radius:11px; cursor:pointer;
+    transition:color .3s; z-index:1; }
+  .tab em { font-style:normal; font-family:var(--mono); font-size:11px; color:#5c7a70;
+    transition:color .3s; }
+  .tab:hover { color:#d7eae3; }
+  .tab.active { color:#f0fbf7; }
+  .tab.active em { color:#7ef0d0; }
+  .ink { position:absolute; top:3px; bottom:3px; left:0; width:0; border-radius:11px; z-index:0;
+    background:linear-gradient(180deg,rgba(126,240,208,.15),rgba(126,240,208,.05));
+    border:1px solid rgba(126,240,208,.26); box-shadow:0 0 20px rgba(126,240,208,.14), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:left .55s var(--ease), width .55s var(--ease); }
+  .counter { flex:none; display:flex; align-items:baseline; gap:6px; font-family:var(--mono);
+    color:#7d9a90; font-size:12px; }
+  .counter b { font-size:20px; font-weight:800; color:#7ef0d0; font-variant-numeric:tabular-nums; }
+  .counter em { font-style:normal; }
+
+  /* ============ 舞台与幻灯片 ============ */
+  .stage { position:fixed; inset:0; z-index:10; overflow:hidden; touch-action:pan-y; }
+  .track { position:absolute; inset:0; display:flex; height:100%;
+    transition:transform .85s cubic-bezier(.77,0,.18,1); will-change:transform; }
+  .slide { position:relative; flex:0 0 100%; width:100%; height:100%; overflow-y:auto;
+    scrollbar-gutter:stable; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  .slide::-webkit-scrollbar { width:9px; }
+  .slide::-webkit-scrollbar-thumb { background:rgba(255,255,255,.14); border-radius:6px;
+    border:2px solid transparent; background-clip:content-box; }
+  .slide::-webkit-scrollbar-thumb:hover { background:rgba(126,240,208,.35);
+    border:2px solid transparent; background-clip:content-box; }
+  .slide-inner { position:relative; z-index:1; width:100%; max-width:1120px; margin:0 auto;
+    padding:92px clamp(24px,5vw,64px) 72px; }
+  .ghost { position:absolute; top:6px; right:14px; z-index:0; font-weight:800; line-height:1;
+    font-size:clamp(120px,22vw,300px); color:rgba(255,255,255,.035); pointer-events:none;
+    user-select:none; font-family:"Bahnschrift","Segoe UI",sans-serif; letter-spacing:-.04em; }
+
+  /* ---- 封面 ---- */
+  .slide-cover { background:linear-gradient(140deg,#0e8072 0%,#0a5a50 34%,#06443e 68%,#032724 100%); }
+  .slide-cover .slide-inner { display:flex; flex-direction:column; justify-content:center;
+    min-height:100%; padding-bottom:0; }
+  .slide-cover .ghost { top:auto; bottom:36px; font-size:clamp(90px,16vw,220px); color:rgba(255,255,255,.04); }
+  .kicker { display:inline-flex; align-items:center; gap:9px; margin:0 0 20px; padding:7px 16px;
+    border:1px solid rgba(255,255,255,.22); border-radius:999px; background:rgba(255,255,255,.08);
+    backdrop-filter:blur(6px); letter-spacing:.18em; font-size:11px; font-weight:800;
+    color:#9ef0dd; width:max-content; }
+  .kicker .kd { width:7px; height:7px; border-radius:50%; background:#7ef0d0; flex:none;
+    animation:pulseDot 1.8s ease-in-out infinite; }
+  @keyframes pulseDot { 0%,100% { box-shadow:0 0 0 0 rgba(126,240,208,.55); }
+    50% { box-shadow:0 0 0 7px rgba(126,240,208,0); } }
+  .slide-cover h1 { margin:0 0 16px; font-size:clamp(30px,4.6vw,54px); line-height:1.24;
+    letter-spacing:-.02em; font-weight:800; color:#f2fbf8; }
+  .char { display:inline-block; opacity:0; }
+  @keyframes charIn { from { opacity:0; transform:translateY(.5em) rotate(4deg); }
+    to { opacity:1; transform:none; } }
+  .grad { background:linear-gradient(90deg,#ffe9b8,#ffd285,#ffe9b8); background-size:200% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:gradShift 4s linear infinite; }
+  @keyframes gradShift { to { background-position:200% 0; } }
+  .slide-cover .lead { margin:0; color:#cdece3; font-size:14.5px; max-width:76ch; }
+  .hero-stats { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+  .stat-chip { display:flex; align-items:baseline; gap:8px; padding:11px 17px; border-radius:14px;
+    background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(8px); transition:transform .3s var(--ease), background .3s; }
+  .stat-chip:hover { transform:translateY(-3px); background:rgba(255,255,255,.16); }
+  .stat-chip b { font-size:23px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; }
+  .stat-chip span { font-size:12px; color:#a8dfd2; }
+  .odom { display:inline-flex; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .odom-col { display:inline-block; width:1ch; height:1em; line-height:1; overflow:hidden; }
+  .odom-strip { display:inline-block; will-change:transform; }
+  .odom-strip span { display:block; height:1em; line-height:1; text-align:center; }
+  .cover-actions { display:flex; align-items:center; flex-wrap:wrap; gap:18px; margin-top:30px; }
+  .cta { padding:14px 30px; border-radius:999px; border:1px solid rgba(126,240,208,.4);
+    background:linear-gradient(120deg,#1d8f7c,#0e6b5c); color:#eafaf6; font-size:15px;
+    font-weight:700; letter-spacing:.06em; cursor:pointer;
+    box-shadow:0 12px 30px rgba(20,190,160,.28); transition:transform .3s var(--ease), box-shadow .3s; }
+  .cta:hover { transform:translateY(-3px) scale(1.03); box-shadow:0 18px 46px rgba(20,190,160,.42); }
+  .cta:active { transform:scale(.97); }
+  .hint { font-family:var(--mono); font-size:11.5px; color:#8fc7b8; letter-spacing:.05em; }
+  .marquee { margin-top:auto; overflow:hidden; border-top:1px solid rgba(255,255,255,.14);
+    background:rgba(2,26,24,.30); }
+  .marquee-track { display:flex; width:max-content; padding:12px 0;
+    animation:marquee 32s linear infinite; }
+  .marquee-track span { white-space:nowrap; font-size:12.5px; letter-spacing:.06em;
+    font-weight:600; color:#9fd8cb; }
+  .marquee-track span::after { content:"✦"; margin:0 18px; color:rgba(255,255,255,.4);
+    font-size:9px; vertical-align:2px; }
+  .marquee:hover .marquee-track { animation-play-state:paused; }
+  @keyframes marquee { to { transform:translateX(-50%); } }
+
+  /* ============ 幻灯片内容（深色玻璃） ============ */
+  .card { position:relative; padding:30px 32px; border-radius:22px; color:var(--ink);
+    background:linear-gradient(180deg,var(--surface),var(--surface2));
+    border:1px solid var(--line); box-shadow:var(--shadow);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  .card h2 { position:relative; display:flex; align-items:center; flex-wrap:wrap; gap:12px;
+    margin:0 0 18px; padding-bottom:14px; border-bottom:1px solid var(--line);
+    font-size:21px; letter-spacing:-.01em; color:#fff; }
+  .card h2::after { content:""; position:absolute; left:0; bottom:-1.5px; width:46px; height:3px;
+    border-radius:3px; background:linear-gradient(90deg,var(--primary),var(--accent));
+    box-shadow:0 0 12px rgba(47,208,180,.5); }
+  .secnum { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--primary-deep);
+    background:var(--primary-soft); border:1px solid rgba(126,240,208,.3); padding:3px 11px;
+    border-radius:999px; letter-spacing:.08em; }
+  .card h3 { display:flex; align-items:center; gap:9px; margin:24px 0 8px; font-size:15.5px;
+    color:var(--primary-deep); }
+  .card h3::before { content:""; width:7px; height:7px; border-radius:2px; flex:none;
+    background:linear-gradient(135deg,var(--primary),var(--accent)); transform:rotate(45deg); }
+  p, li { font-size:14px; }
+  ul { margin:8px 0; padding-left:4px; list-style:none; }
+  li { position:relative; margin:7px 0; padding-left:19px; }
+  li::before { content:""; position:absolute; left:3px; top:.66em; width:7px; height:7px;
+    border-radius:2px; background:linear-gradient(135deg,var(--primary),#37b8a5);
+    transform:rotate(45deg); }
+  strong { color:#eef7f4; }
+
+  .verdict { position:relative; overflow:hidden; display:flex; flex-wrap:wrap; gap:8px 16px;
+    align-items:center; margin-top:18px; padding:16px 20px; border-radius:16px;
+    background:linear-gradient(120deg,rgba(126,226,176,.13),rgba(126,226,176,.05));
+    border:1px solid rgba(126,226,176,.3); }
+  .verdict.bad { background:linear-gradient(120deg,rgba(255,155,147,.13),rgba(255,155,147,.05));
+    border-color:rgba(255,155,147,.3); }
+  .verdict::after { content:""; position:absolute; inset:0; transform:translateX(-100%);
+    background:linear-gradient(105deg,transparent 32%,rgba(255,255,255,.10) 50%,transparent 68%);
+    animation:shine 4.6s var(--ease) infinite; }
+  .verdict b { display:inline-flex; align-items:center; gap:10px; font-size:16.5px; color:#dff7ec; }
+  .verdict.ok b::before { content:""; width:10px; height:10px; border-radius:50%;
+    background:var(--good); animation:pulse 2s ease-out infinite; }
+  .verdict.bad b::before { content:""; width:10px; height:10px; border-radius:50%;
+    background:var(--bad); }
+  .verdict span { color:var(--muted); font-size:12.5px; }
+  @keyframes pulse { 0% { box-shadow:0 0 0 0 rgba(126,226,176,.5); }
+    70% { box-shadow:0 0 0 11px rgba(126,226,176,0); } 100% { box-shadow:0 0 0 0 rgba(126,226,176,0); } }
+  @keyframes shine { 0% { transform:translateX(-100%); } 55%,100% { transform:translateX(100%); } }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:14px; margin-top:18px; }
+  .grid.tight { margin-top:8px; }
+  .metric { position:relative; padding:16px 18px 17px; border:1px solid var(--line);
+    border-radius:16px; background:var(--surface); overflow:hidden;
+    backdrop-filter:blur(8px);
+    transition:transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s; }
+  .metric::after { content:""; position:absolute; left:14px; right:14px; bottom:0; height:3px;
+    border-radius:3px; background:linear-gradient(90deg,var(--primary),var(--accent));
+    transform:scaleX(0); transform-origin:left; transition:transform .45s var(--ease); }
+  .metric:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(0,0,0,.35);
+    border-color:var(--line2); }
+  .metric:hover::after { transform:scaleX(1); }
+  .metric b { display:block; font-size:30px; font-weight:800; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums; line-height:1.15;
+    background:linear-gradient(120deg,#8df3dd,#2fd0b4 55%,#f2c97e);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .metric span { display:block; color:var(--muted); font-size:12.5px; margin-top:5px; line-height:1.5; }
+
+  table.kv { width:100%; border-collapse:separate; border-spacing:0; margin-top:14px;
+    font-size:13.5px; }
+  table.kv th, table.kv td { border-bottom:1px solid var(--line); padding:9px 12px;
+    text-align:left; vertical-align:top; }
+  table.kv tbody tr:last-child th, table.kv tbody tr:last-child td { border-bottom:0; }
+  table.kv thead th { position:sticky; top:0; z-index:1; font-size:12.5px; letter-spacing:.05em;
+    color:var(--primary-deep); background:rgba(10,26,22,.96); }
+  table.kv thead th:first-child { border-top-left-radius:13px; border-bottom:1px solid var(--line2); }
+  table.kv thead th:last-child { border-top-right-radius:13px; border-bottom:1px solid var(--line2); }
+  table.kv tbody th { background:var(--surface2); font-weight:700; color:#dbeae5;
+    width:26%; border-right:1px solid var(--line); }
+  table.kv.wide tbody th { width:22%; }
+  table.kv tbody tr { transition:background .25s; }
+  table.kv tbody tr:hover th, table.kv tbody tr:hover td { background:rgba(126,240,208,.06); }
+  .chip { display:inline-block; min-width:30px; text-align:center; padding:2px 8px; margin-right:9px;
+    border-radius:8px; background:var(--primary-soft); border:1px solid rgba(126,240,208,.3);
+    color:var(--primary-deep); font-weight:800; font-size:12px; font-family:var(--mono); }
+
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:3px 12px;
+    border-radius:999px; font-size:12px; font-weight:700; }
+  .badge.ok { background:rgba(126,226,176,.14); color:var(--good);
+    border:1px solid rgba(126,226,176,.35); animation:badgeGlow 2.8s ease-in-out infinite; }
+  .badge.bad { background:rgba(255,155,147,.14); color:var(--bad);
+    border:1px solid rgba(255,155,147,.35); }
+  @keyframes badgeGlow { 0%,100% { box-shadow:0 0 0 0 rgba(126,226,176,.16); }
+    50% { box-shadow:0 0 0 6px rgba(126,226,176,0); } }
+  .state { display:inline-block; padding:2px 12px; border-radius:999px; font-size:11.5px;
+    font-weight:700; letter-spacing:.03em; }
+  .state.running { background:rgba(232,180,90,.15); color:#f2c97e; border:1px solid rgba(232,180,90,.4); }
+  .state.done { background:rgba(126,226,176,.15); color:#7ee2b0; border:1px solid rgba(126,226,176,.4); }
+  .state.failed { background:rgba(255,155,147,.15); color:#ff9b93; border:1px solid rgba(255,155,147,.4); }
+  .pbar { display:inline-block; width:96px; height:8px; border-radius:6px; background:rgba(255,255,255,.10);
+    overflow:hidden; vertical-align:middle; margin-right:10px; }
+  .pbar i { display:block; height:100%; width:0; border-radius:6px;
+    background:linear-gradient(90deg,#2fd0b4,#f2c97e); }
+  .pbar i.grow { animation:growBar 1s cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes growBar { to { width:var(--w, 0%); } }
+  .pnum { font-family:var(--mono); font-size:12.5px; color:#dbeae5; }
+
+  code { background:rgba(126,240,208,.12); color:#7ef0d0; padding:2px 6px; border-radius:6px;
+    font-size:12.5px; font-family:var(--mono); border:1px solid rgba(126,240,208,.22); }
+  pre { margin:12px 0; padding:16px 18px; border-radius:14px; background:#0a1417;
+    color:#d7e9e2; font-family:var(--mono); font-size:12.3px; line-height:1.75;
+    overflow:auto; white-space:pre-wrap; border:1px solid rgba(255,255,255,.07);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
+  pre div { min-height:1.4em; }
+  pre .line-ok { color:#7ee2b0; } pre .line-bad { color:#ff9b93; }
+  pre .line-dim { color:#8aa7a0; } pre .line-info { color:#8fd3f0; }
+
+  details { margin-top:10px; border:1px solid var(--line); border-radius:14px;
+    background:var(--surface); overflow:hidden; transition:border-color .3s, box-shadow .3s; }
+  details[open] { border-color:rgba(126,240,208,.35); box-shadow:0 14px 34px rgba(0,0,0,.3); }
+  summary { cursor:pointer; padding:11px 14px; font-size:13px; font-weight:700;
+    color:#bfe3d8; list-style:none; display:flex; align-items:center; gap:10px;
+    transition:background .25s; }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:"▸"; font-size:12px; color:var(--primary);
+    transition:transform .3s var(--ease); }
+  details[open] summary::before { transform:rotate(90deg); }
+  summary:hover { background:rgba(255,255,255,.04); }
+  details pre { margin:0; border:0; border-top:1px solid var(--line); border-radius:0;
+    animation:fadeIn .5s var(--ease); }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+
+  .muted { color:var(--muted); font-size:12.5px; }
+
+  /* ============ 入场编排 ============ */
+  .s-item { opacity:0; transform:translateY(26px); }
+  .slide:not(.active) .s-item { opacity:1; transform:none; transition:none; }
+  .slide.active .s-item { opacity:1; transform:none;
+    transition:opacity .7s var(--ease), transform .7s var(--ease);
+    transition-delay:calc(var(--sd, 0) * 60ms); }
+  .s-item.pre { opacity:0 !important; transform:translateY(26px) !important;
+    transition:none !important; }
+
+  /* ============ 导航按钮 / 底条 ============ */
+  .nav { position:fixed; top:50%; transform:translateY(-50%); z-index:60; width:52px; height:52px;
+    border-radius:50%; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
+    backdrop-filter:blur(10px); color:#cfe6de; font-size:24px; line-height:1; cursor:pointer;
+    display:grid; place-items:center; padding-bottom:3px;
+    transition:background .3s, transform .3s var(--ease), box-shadow .3s, opacity .3s; }
+  .nav:hover { background:rgba(126,240,208,.14); transform:translateY(-50%) scale(1.08);
+    box-shadow:0 0 24px rgba(126,240,208,.25); }
+  .nav.off { opacity:.25; pointer-events:none; }
+  .nav.prev { left:20px; } .nav.next { right:20px; }
+  .deckbar { position:fixed; left:0; right:0; bottom:0; height:3px; z-index:80;
+    background:rgba(255,255,255,.06); }
+  #barfill { display:block; height:100%; width:0;
+    background:linear-gradient(90deg,#2fd0b4,#e8b45a);
+    box-shadow:0 0 14px rgba(47,208,180,.6); transition:width .6s var(--ease); }
+  .deck-note { position:fixed; right:20px; bottom:12px; z-index:55; font-family:var(--mono);
+    font-size:10.5px; color:#5c7a70; pointer-events:none; letter-spacing:.04em; }
+
+  body.dragging { cursor:grabbing; user-select:none; }
+  body.dragging .track { transition:none; }
+
+  @media (max-width:980px) {
+    .brand small { display:none; }
+    .counter { display:none; }
+    .nav { width:44px; height:44px; font-size:20px; }
+    .nav.prev { left:10px; } .nav.next { right:10px; }
+    .card { padding:22px 18px; }
+    .deck-note { display:none; }
+  }
+
+  /* ============ 减弱动效 ============ */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.01ms !important;
+      animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+    .char, .s-item { opacity:1 !important; transform:none !important; }
+    .pbar i { width:var(--w, 0%) !important; }
+  }
+
+  /* ============ 打印 ============ */
+  @media print {
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    :root { --ink:#17262c; --muted:#55666a; --line:#d5e0db; --line2:#c9d9d2;
+      --surface:#ffffff; --surface2:#f4f8f5; --surface3:#eef4f0;
+      --primary:#0d7a6d; --primary-deep:#06463f; --primary-soft:#e3f4ef;
+      --accent:#b4770a; --accent-ink:#8a5a06; --good:#14775f; --bad:#a23a37; --shadow:none; }
+    html, body { height:auto; overflow:visible; background:#fff; }
+    .topbar, .deckbar, .nav, .grain, .bg-glow, .bg-grid, .bg-routes,
+    .deck-note, .marquee { display:none !important; }
+    .stage { position:static; overflow:visible; }
+    .track { position:static; display:block; transform:none !important; height:auto; }
+    .slide { position:static; display:block; width:auto; height:auto; overflow:visible;
+      break-after:page; }
+    .slide:last-child { break-after:auto; }
+    .slide-cover { background:#fff !important; }
+    .slide-cover h1 { color:#17262c; } .slide-cover .lead { color:#55666a; }
+    .slide-cover .grad { background:none; -webkit-text-fill-color:#0d7a6d; color:#0d7a6d; }
+    .slide-cover .kicker, .slide-cover .stat-chip { color:#0d6a63; border-color:#bfe0d5;
+      background:#f2f9f6; }
+    .slide-cover .stat-chip b { color:#06463f; }
+    .slide-inner { padding:20px 0; min-height:0; max-width:none; }
+    .ghost { display:none; }
+    .char, .s-item { opacity:1 !important; transform:none !important; }
+    .card { break-inside:avoid; border:1px solid var(--line); }
+    .metric b { color:var(--primary-deep) !important; background:none !important;
+      -webkit-text-fill-color:var(--primary-deep) !important; }
+    .verdict::after, .metric::after { display:none; }
+    .badge { animation:none; box-shadow:none; }
+    table.kv thead th { position:static; background:var(--surface3); }
+    details { break-inside:avoid; } details[open] pre { max-height:none; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" id="bgA" aria-hidden="true"><i class="g1"></i><i class="g2"></i><i class="g3"></i></div>
+<svg class="bg-routes" id="bgB" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <g class="arcs">
+    <path d="M150,330 Q 600,-40 1050,60"/>
+    <path d="M90,150 Q 580,60 1120,220"/>
+    <path d="M250,90 Q 540,40 870,120"/>
+    <path d="M340,300 Q 560,180 760,300"/>
+    <path d="M150,330 Q 520,430 960,360"/>
+    <path d="M250,90 Q 700,150 1120,220"/>
+    <path d="M340,300 Q 700,-20 1050,60"/>
+    <path d="M90,150 Q 400,250 760,300"/>
+  </g>
+  <g class="nodes">
+    <circle cx="150" cy="330" r="3"/><circle cx="90" cy="150" r="2.6"/>
+    <circle cx="250" cy="90" r="3.2"/><circle cx="340" cy="300" r="2.6"/>
+    <circle cx="1050" cy="60" r="3.2"/><circle cx="1120" cy="220" r="2.6"/>
+    <circle cx="960" cy="360" r="3"/><circle cx="870" cy="120" r="2.6"/>
+    <circle cx="760" cy="300" r="3"/>
+  </g>
+</svg>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar" id="topbar">
+  <div class="brand"><span class="bd"></span>PERSONAL ROUTE STUDIO<small>· 项目报告书</small></div>
+  <nav class="tabs" id="tabs"><span class="ink" id="ink"></span></nav>
+  <div class="counter"><b id="cur">01</b><span>/</span><em id="total">10</em></div>
+</header>
+
+<main class="stage" id="stage">
+  <div class="track" id="track">
+    <section class="slide slide-cover active" id="cover">
+      <span class="ghost" aria-hidden="true">✦</span>
+      <div class="slide-inner">
+        <p class="kicker"><span class="kd"></span>PERSONAL ROUTE STUDIO · 项目报告书</p>
+        <h1>大交通换乘规划：<span class="grad">火车 / 飞机 / 长途汽车</span> 与自驾的行程规划器</h1>
+        <p class="lead">本地运行、数据自持：把公开时刻表、城市攻略、参考路线与世界数据收在一处，
+           用同一套引擎回答「怎么走、几天、大概多少钱、哪里能省」。
+           本报告由脚本从运行时与验证结果自动汇总，不含手写数字。</p>
+        <div class="hero-stats"><div class="stat-chip"><b data-count="239">239</b><span>座城市资料</span></div><div class="stat-chip"><b data-count="44">44</b><span>天时刻表</span></div><div class="stat-chip"><b data-count="212">212</b><span>条参考路线</span></div><div class="stat-chip"><b data-count="64">64</b><span>条穷游环线</span></div><div class="stat-chip"><b data-count="87">87</b><span>座世界城市</span></div><div class="stat-chip"><b data-count="896">896</b><span>个城内点位</span></div></div>
+        <div class="cover-actions">
+          <button class="cta" id="cta" type="button">开始浏览 →</button>
+          <span class="hint">← → 方向键 · 拖拽滑动 · 顶部标签切换</span>
+        </div>
+        <div class="marquee" aria-hidden="true"><div class="marquee-track"><span>239 座城市 · 239 份完整攻略</span><span>44 天时刻表 · 452717 条停站记录</span><span>212 条参考路线 · 分类 47 个</span><span>64 条穷游环线 · 覆盖 12 个出发地</span><span>87 座世界城市 · 20 条世界环线</span><span>3384 车站 · 91 机场</span><span>896/897 城内点位命中</span><span>9/9 浏览器探针 · 6/6 数据体检</span><span>287 项单元测试</span><span>239 座城市 · 239 份完整攻略</span><span>44 天时刻表 · 452717 条停站记录</span><span>212 条参考路线 · 分类 47 个</span><span>64 条穷游环线 · 覆盖 12 个出发地</span><span>87 座世界城市 · 20 条世界环线</span><span>3384 车站 · 91 机场</span><span>896/897 城内点位命中</span><span>9/9 浏览器探针 · 6/6 数据体检</span><span>287 项单元测试</span></div></div>
+      </div>
+    </section>
+  </div>
+  <button class="nav prev" id="prev" aria-label="上一页">‹</button>
+  <button class="nav next" id="next" aria-label="下一页">›</button>
+</main>
+
+<div class="deckbar" aria-hidden="true"><i id="barfill"></i></div>
+<div class="deck-note">生成于 2026-09-27 13:28 · Python 3.12.7</div>
+
+<div id="slides-src" hidden>
+<section class="card reveal " id="sec-01" data-title="结论"><h2><span class="secnum">01</span>结论</h2>
+    <div class="verdict ok">
+      <b>全部检查通过，可以正常使用</b>
+      <span>报告生成时间 2026-09-27 13:28 · 证据文件 2026-09-26T19:29:36</span>
+    </div>
+    <div class="grid">
+      <div class="metric reveal"><b data-count="239">239</b><span>城市资料 · 含完整多日攻略</span></div>
+      <div class="metric reveal"><b data-count="44">44</b><span>时刻表天数 · 2026-06-17 ~ 2026-10-15</span></div>
+      <div class="metric reveal"><b data-count="212">212</b><span>参考路线 · 单向 169 / 环线 43</span></div>
+      <div class="metric reveal"><b data-count="64">64</b><span>穷游环线 Ultra · 北京 29 · 河北 35</span></div>
+      <div class="metric reveal"><b data-count="87">87</b><span>世界城市 · 20 条世界环线</span></div>
+      <div class="metric reveal"><b data-count="896">896</b><span>城内点位坐标 · 命中率 99.9%</span></div>
+    </div></section><section class="card reveal " id="sec-02" data-title="功能地图"><h2><span class="secnum">02</span>功能地图</h2>
+    <table class="kv wide">
+      <thead><tr><th>页签 / 模块</th><th>解决什么</th><th>关键实现</th></tr></thead>
+      <tbody>
+        <tr><th><span class="chip">01</span>换乘规划</th><td>两地之间的换乘方案：车次、时刻、票价口径、12306 链接</td>
+            <td>本地时刻表引擎（含地面接驳与拷贝日警告）</td></tr>
+        <tr><th><span class="chip">02</span>环线旅行</th><td>把几座城市串成一条环线；另有「环线 Ultra 版」——北京/河北出发的穷游整条线</td>
+            <td>环线排序 + 逐日安排（Ultra 64 条，34 小 + 30 大环线）</td></tr>
+        <tr><th><span class="chip">03</span>地图漫游</th><td>在 3D 地形上点城市拼路线：公共交通 / 自驾 / 租车三种方式</td>
+            <td>three.js 地形 + 省界/河湖/山脉 + 26 条国内环线</td></tr>
+        <tr><th><span class="chip">04</span>地球模式</th><td>世界城市、世界经典环线（含海上/极地）、世界之最、世界行程单</td>
+            <td>globe.gl；环线按环境色上色（球面提亮保证可见）</td></tr>
+        <tr><th><span class="chip">05</span>数据台</th><td>体检 + 覆盖率、日期来源、真爬（可断点续爬）、路线库、我的行程、城内点位、城市动线、素材导入、查班次</td>
+            <td>顶部吸顶「直达」导航；九张卡按需展开</td></tr>
+      </tbody>
+    </table></section><section class="card reveal " id="sec-03" data-title="数据规模与口径"><h2><span class="secnum">03</span>数据规模与口径</h2><table class="kv"><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody><tr><th>铁路时刻表</th><td>44 天 · 最多 10774 趟/天 · 共 452717 条停站记录</td></tr><tr><th>来源档位</th><td>导入 1 天 · 真爬 2 天 · 拷贝 41 天</td></tr><tr><th>车站 / 机场</th><td>3384 个车站 · 91 个机场</td></tr><tr><th>城市资料</th><td>239 座城市 · 10 个大区（东北、华北、齐鲁、江南、华中、华南…） · 完整攻略 239/239 · 看点 239 座</td></tr><tr><th>国内环线</th><td>26 条（自驾资料含公路编号、封路期）</td></tr><tr><th>参考路线库</th><td>212 条：单向 169 / 环线 43 · 分类 47 个 · 巧思 122 条 · 口径 2026-09-25</td></tr><tr><th>环线 Ultra</th><td>64 条：小环线 34 + 大环线 30 · 覆盖 12 个出发地 · 3-19 天 · 口径 2026-09-25</td></tr><tr><th>城内点位</th><td>名单 897 个看点（239 城）· 命中 896（99.9%）· 未命中 1</td></tr><tr><th>世界数据</th><td>87 座城市（87 张照片）· 20 条环线 · 30 条世界之最（30 张图）</td></tr><tr><th>世界环线环境</th><td>古迹 2、城市 3、极地 4、沙漠 2、海洋 5、草原 2、雪山 1、高原 1</td></tr><tr><th>数据库文件</th><td>E:\26063\Documents\DSH\travel-planner\data\timetable.db · 705.3 MB · 完整性检查 ok</td></tr></tbody></table><p class="muted">价格为公开攻略区间、不是实时票价；车次与票价以 12306 与官方渠道为准。</p></section><section class="card reveal " id="sec-04" data-title="验证结果"><h2><span class="secnum">04</span>验证结果</h2>
+    <div class="grid tight">
+      <div class="metric reveal"><b data-count="9">9</b><span>浏览器探针通过 · 共 9 个</span></div>
+      <div class="metric reveal"><b data-count="307">307</b><span>探针断言 · 失败 0 条</span></div>
+      <div class="metric reveal"><b data-count="6">6</b><span>数据体检通过 · 共 6 项</span></div>
+      <div class="metric reveal"><b data-count="287">287</b><span>单元测试 · 失败 0 项</span></div>
+    </div>
+    <h3>单元测试</h3>
+    <p>287 项单元测试 · 耗时 32.679s —— <span class="badge ok">✓ 通过</span></p>
+    <h3>浏览器端到端探针（真实 Chromium，不需要人工看）</h3>
+    <table class="kv wide"><thead><tr><th>探针</th><th>结果</th><th>说明</th></tr></thead>
+      <tbody><tr><th>check_plan.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>13 条断言通过 · ✓ 全部正常</td></tr><tr><th>check_ultra.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>32 条断言通过 · ✓ 全部正常</td></tr><tr><th>check_map.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>74 条断言通过 · ✓ 全部通过</td></tr><tr><th>check_globe.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>53 条断言通过 · ✓ 全部通过</td></tr><tr><th>check_globe_env.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>23 条断言通过 · ✓ 全部正常</td></tr><tr><th>dev_probe.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>15 条断言通过 · ✓ 全部正常</td></tr><tr><th>dev_probe_cards.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>13 条断言通过 · ✓ 全部正常</td></tr><tr><th>dev_probe_data.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>83 条断言通过 · ✓ 全部正常</td></tr><tr><th>check_contrast.mjs</th><td><span class="badge ok">✓ 通过</span></td><td>1 条断言通过</td></tr></tbody></table>
+    <h3>数据体检</h3>
+    <table class="kv wide"><thead><tr><th>检查</th><th>结果</th><th>备注</th></tr></thead>
+      <tbody><tr><th>Ultra 环线体检</th><td><span class="badge ok">✓ 通过</span></td><td>exit 0</td></tr><tr><th>Ultra 库校验</th><td><span class="badge ok">✓ 通过</span></td><td>exit 0</td></tr><tr><th>路线库校验</th><td><span class="badge ok">✓ 通过</span></td><td>exit 0</td></tr><tr><th>世界环线校验</th><td><span class="badge ok">✓ 通过</span></td><td>exit 0</td></tr><tr><th>世界城市攻略校验</th><td><span class="badge ok">✓ 通过</span></td><td>exit 0</td></tr><tr><th>数据体检</th><td><span class="badge ok">✓ 通过</span></td><td>exit 0</td></tr></tbody></table>
+    <h3>原始输出（可展开核对）</h3>
+    <details><summary>原始输出：check_plan.mjs</summary><pre>  ✓ 给了 12306 购票链接
+  ✓ 底部带出相关路线参考
+  ✓ 沿途城市资料挂出来了（不用恰好命中攻略） — 2 座：北京、上海
+  ✓ 每座城标了角色（起点/中转/终点） — 起点/终点
+  ✓ 写了建议停留多久 — 北京 · 推荐 9.6 分 · 建议留 3.5 天（半日线 + 一日线都排得下）
+  ✓ 带上看点标签 — 8 个标签
+  ✓ 能直接跳到「城内动线」并能展开攻略
+  ✓ 页面没有异常 — 无
+截图: C:\Users\26063\AppData\Local\Temp\check-plan-mixed-1440x900.png
+✓ 全部正常</pre></details><details><summary>原始输出：check_ultra.mjs</summary><pre>  ✓ 计数栏写明含多少条大环线 — 共 30 条（北京 29 · 河北 35，覆盖 12 个出发地 · 含大环线 30 条）· 3-19 天 · 总价 300-8600 元 · 日均 128-364 元 · 口径 2
+城内动线: {&quot;found&quot;:true,&quot;city&quot;:&quot;承德&quot;,&quot;waitedMs&quot;:500,&quot;activeTab&quot;:&quot;data&quot;,&quot;guideCity&quot;:&quot;承德&quot;,&quot;guideRows&quot;:2,&quot;guideStatus&quot;:&quot;池子 95 个点位&quot;,&quot;guideSummary&quot;:&quot;承德：2 天动线（建议 2 天），对上 4 个带坐标的点位 · 能画线的 2 天 · POI 池 95 个 · 一天泡避暑山庄的湖山与环山车，一天串外八庙，清代皇家夏都的精华两天能看全，北京坐高铁一小时就到。&quot;}
+  ✓ Ultra 详情里有「看城内动线」按钮 — 承德
+  ✓ 点它会切到数据台并把这天/出发城市填好 — 页签 data，城市 承德
+  ✓ 那座城的动线真的铺出来了 — 2 天 · 承德：2 天动线（建议 2 天），对上 4 个带坐标的点位 · 能画线的 2 天 · POI 池 95 个 · 一天泡避暑山庄的湖山与环山车，一天串外八庙，清代皇家夏都的精华两天能看全，北京坐高铁一小时就到。
+  ✓ 再点一次收起，普通环线结果回来 — 环线 Ultra 版
+截图: C:\Users\26063\AppData\Local\Temp\check-ultra-1440x900.png
+  ✓ 页面没有异常 — 无
+  ✓ 没有请求失败 — 无
+✓ 全部正常</pre></details><details><summary>原始输出：check_map.mjs</summary><pre>  ✓ 隐藏图标：canvas 上的路线不受影响（不是把路线一起藏了）
+  ✓ 再点回来：卡片与标签都恢复
+  ✓ 每帧 DOM/投影耗时可接受 — 0.12 ms/帧
+✓ 全部通过
+[地图漫游] 加载失败 Error: 服务端还在跑旧版本代码：/api/roam/map 不存在。请停掉后重新启动 python -m travel_planner.web（或 scripts/run_web.ps1）
+    at Object.loadData (file:///C:/Users/26063/AppData/Local/Temp/dsh-map-check-30388.mjs:2309:15)
+    at async file:///E:/26063/Documents/DSH/travel-planner/scripts/check_map.mjs:549:7
+[地图漫游] 加载失败 Error: 这台设备的浏览器没有启用 WebGL，无法绘制立体地图。请在 chrome://gpu 里确认硬件加速已开启，或改用 Chrome / Edge 打开。
+    at Object.loadData (file:///C:/Users/26063/AppData/Local/Temp/dsh-map-check-30388.mjs:2333:13)
+    at async file:///E:/26063/Documents/DSH/travel-planner/scripts/check_map.mjs:563:7</pre></details><details><summary>原始输出：check_globe.mjs</summary><pre>  ✓ 全屏按钮进入全屏态 — isFull=true 按钮=&quot;⛶ 退出全屏&quot;
+  ✓ Esc 退出全屏（不误清空其他状态）
+  ✓ 生成世界行程单 — 3057 字
+  ✓ 行程单明确说明不含票价
+  ✓ 自转开关仍可用
+  ✓ 隐藏图标：卡片浮层收起来了
+  ✓ 隐藏图标：按钮文案换成「显示图标」 — 显示图标
+  ✓ 隐藏图标：球上的点位没被一起清掉（藏的是浮层） — 点位 117 · 卡片 87
+  ✓ 再点回来：卡片恢复显示且按钮文案复原
+✓ 全部通过</pre></details><details><summary>原始输出：check_globe_env.mjs</summary><pre>  ✓ 「北极圈·斯瓦尔巴与极光带」列表里有点/标签标识环境 — 极地 字色 rgb(20, 49, 58)
+  ✓ 「北极圈·斯瓦尔巴与极光带」选中后卡片画得出来（不是空球） — 4/4
+  · 中亚丝路环线｜env=沙漠(#d9a441)｜mode=reference｜球面线=#d9b777｜4 段｜可见卡片 4/4｜列表圆点=rgb(217, 164, 65)｜标签「沙漠」字色 rgb(20, 49, 58) 边框 rgb(217, 164, 65)
+  ✓ 「中亚丝路环线」球面上的线还是同一个环境色系（色相差 ≤25°） — #d9a441(h39) → #d9b777(h39)
+  ✓ 「中亚丝路环线」的线在球面上亮度够（≥0.18） — 亮度 0.500
+  ✓ 「中亚丝路环线」列表里有点/标签标识环境 — 沙漠 字色 rgb(20, 49, 58)
+  ✓ 「中亚丝路环线」选中后卡片画得出来（不是空球） — 4/4
+截图: C:\Users\26063\AppData\Local\Temp\globe-env-0-1440x900.png  C:\Users\26063\AppData\Local\Temp\globe-env-1-1440x900.png  C:\Users\26063\AppData\Local\Temp\globe-env-2-1440x900.png  C:\Users\26063\AppData\Local\Temp\globe-env-3-1440x900.png
+  ✓ 页面没有异常 — 无
+✓ 全部正常</pre></details><details><summary>原始输出：dev_probe.mjs</summary><pre>  ✓ 右栏没有被视口切掉 — 右栏 right=1405 视口宽=1425
+  ✓ 左右两栏在地球窗口之外（页面白底上） — 左栏 307 &lt; 地球 319，地球 1107 &lt; 右栏 1119
+  ✓ 点世界之最：镜头飞过去 — -49,0,346 → -115,-168,50
+  ✓ 点世界之最：对应卡片高亮 — 高亮 1 张
+  ✓ 点世界之最：记下了 activeRecord — ushuaia
+  ✓ 点环线：镜头移到该环线 — -115,-168,50 → 184,244,118
+  ✓ 点环线：整条线的卡片高亮 — 7 张（7 张城市卡）
+  ✓ 点环线：只铺开这条线的城市 — 7 张
+截图: C:\Users\26063\AppData\Local\Temp\dev-probe-globe-1440x900.png
+✓ 全部正常</pre></details><details><summary>原始输出：dev_probe_cards.mjs</summary><pre> },
+ &quot;afterAdd&quot;: {
+  &quot;before&quot;: &quot;7&quot;,
+  &quot;btnDisabled&quot;: false
+ },
+ &quot;picked&quot;: &quot;7&quot;
+}
+  ✓ 工具栏有「加进路线」按钮且选中环线后可点 — ＋ 加进路线 options=21 disabled=false
+  ✓ 点工具栏按钮能把环线城市加进路线 — 已选 7 城
+✓ 全部正常</pre></details><details><summary>原始输出：dev_probe_data.mjs</summary><pre>  ✓ 进度条按百分比画出来 — 10%
+  ✓ 逐对明细能展开（看得到 running 的那一对） — 2099-01-01 逐对明细（最近 1 条 / 共 600 条）BJP:SHHrunning · 试过 1 次 · 2099-01-01T10:00:00do
+  ✓ 点「接着爬」按同一天 + 勾上续爬发起（停在确认框上，探针不真的开爬） — 真爬 2099-01-01？
+全国爬取：6006 个 OD 对，约 1 小时
+· 期间别关服务；同一时刻只能跑一个爬取任务；
+· 进度逐对落盘，断电/关窗口都能接着爬（勾着「接
+旧断点: {&quot;visible&quot;:true,&quot;text&quot;:&quot;2026-10-10 有旧断点残留crawl_state_2026-10-10.txt发现旧格式断点：pairs 阶段第 596 对，已发现 1518 趟车。旧断点只记序号…按 OD 重新核对这一天勾着「接着上次爬」点开始即可；已入库的车次不会重复抓。&quot;,&quot;hasGo&quot;:true}
+  ✓ 有旧格式断点残留时也如实提示（不装作没爬过） — 2026-10-10 有旧断点残留crawl_state_2026-10-10.txt发现旧格式断点：pairs 阶段第 596 对，已发现 1518 趟车。旧断点只记序号…按 O
+整页截图: C:\Users\26063\AppData\Local\Temp\dev-probe-data-1440x900.png
+✓ 全部正常</pre></details><details><summary>原始输出：check_contrast.mjs</summary><pre>   6.36 [loop] em 12px  rgb(76, 95, 100) on rgb(245,250,247)  「省内/周边几站，能排出真实车次与票价 → 去「地图漫」
+   6.44 [plan] button.primary 14px  rgb(255, 255, 255) on rgb(13,106,99)  「开始规划」
+   6.44 [loop] button.primary 14px  rgb(255, 255, 255) on rgb(13,106,99)  「规划环线」
+   6.44 [map] button.primary 11px  rgb(255, 255, 255) on rgb(13,106,99)  「生成乘车表」
+   6.44 [globe] button.rec-chip.active 11px  rgb(255, 255, 255) on rgb(13,106,99)  「全部」
+   6.44 [globe] button.primary 11px  rgb(255, 255, 255) on rgb(13,106,99)  「生成世界行程单」
+   6.44 [data] button.primary 14px  rgb(255, 255, 255) on rgb(13,106,99)  「开始真爬」
+   6.49 [loop] b 13px  rgb(138, 74, 6) on rgb(255,248,236)  「京冀穷游 Ultra · 64 条」
+截图（最后停在数据台）: C:\Users\26063\AppData\Local\Temp\check-contrast-1440x900.png
+✓ 没有明显看不清的文字</pre></details>
+    <p class="muted">这些数字由 <code>scripts/collect_evidence.py</code> 跑出来写进
+      <code>data/report_evidence.json</code>，报告只负责呈现 —— 想复核就重跑一次。</p></section><section class="card reveal " id="sec-05" data-title="可靠性与诚实性设计"><h2><span class="secnum">05</span>可靠性与诚实性设计</h2>
+    <h3>1. 断点续爬：进度按 OD 成员落盘</h3>
+    <p>真爬 12306 是唯一会长时间联网的操作。进度不是记在内存里，而是逐对 OD 写进 SQLite：
+      开爬前记 <code>running</code>、做完记 <code>done</code> 并立即提交。断电、关窗口、进程被杀都能接着爬，
+      而且<strong>换过爬取范围也不会错位</strong>（旧实现按「第几对」切片，换列表就会切空、报「入库 0 趟」）。
+      更早的旧断点页面会如实提示「有旧断点残留」，不假装能精确续爬。</p>
+    <h3>2. 数据诚实性：不编造查得到的实时信息</h3>
+    <ul>
+      <li>路线库与 Ultra 的价格一律是<strong>公开攻略区间</strong>，明确标注「不是实时票价」；</li>
+      <li>每条素材带 <code>source</code> / <code>confidence</code> / 口径日期，低可信度必须写明不确定在哪；</li>
+      <li>Ultra 校验器用正则挡掉<strong>车次号与精确时刻</strong>（写死在攻略里必然过期）；</li>
+      <li>拷贝日会明确提示「不是当天真实车次」；排不出的行程按原因归类，不静默丢弃；</li>
+      <li>世界数据<strong>不给机票价</strong>：只给大圆距离、预计飞行时间、时差与建议天数。</li>
+    </ul>
+    <h3>3. 配色与可读性</h3>
+    <ul>
+      <li>填充色与文字色分开：<code>--primary</code> 只用于按钮底/边框，文字用更深的
+        <code>--primary-ink</code>（青绿当小字用只有 5.4 对比度，达标但费眼）；</li>
+      <li>环境色只做色块（圆点/边框），<strong>绝不当字色</strong>；球面上的航线会提亮一档再画；</li>
+      <li>原生下拉的选项显式写死深色字 + 白底（深色工具栏上的浅色字会被选项继承 → 白底白字）；</li>
+      <li>对比度探针逐页签扫，含下拉选项专项与自检，当前 0 处不达标。</li>
+    </ul>
+    <h3>4. 不自动做事</h3>
+    <p>爬取、写库、导入都必须由人点确认；后台任务可取消、有日志、有进度；
+      单进程同一时刻只允许一个爬取任务，避免风控与写冲突。</p></section><section class="card reveal " id="sec-06" data-title="爬取状态"><h2><span class="secnum">06</span>爬取状态</h2>
+    <h3>爬取账本（来自数据库，不是内存任务）</h3>
+    <table class="kv wide"><thead><tr><th>日期</th><th>进度</th><th>状态</th><th>最后更新</th></tr></thead><tbody><tr><th>2026-10-09</th><td><span class="pbar"><i style="--w:20.9%"></i></span><span class="pnum">1254/6006</span></td><td>running</td><td>2026-09-26T23:17:40</td></tr></tbody></table>
+    <h3>旧格式断点残留（页面会如实提示，不假装能精确续爬）</h3><ul><li>发现旧格式断点：pairs 阶段第 13 对，已发现 0 趟车。旧断点只记序号，换过爬取范围就会错位，所以下次爬取会按 OD 重新核对一遍（已入库的车次不会重复抓）。</li><li>发现旧格式断点：trains 阶段第 3 对，已发现 106 趟车。旧断点只记序号，换过爬取范围就会错位，所以下次爬取会按 OD 重新核对一遍（已入库的车次不会重复抓）。</li><li>发现旧格式断点：pairs 阶段第 1380 对，已发现 4153 趟车。旧断点只记序号，换过爬取范围就会错位，所以下次爬取会按 OD 重新核对一遍（已入库的车次不会重复抓）。</li><li>发现旧格式断点：pairs 阶段第 596 对，已发现 1518 趟车。旧断点只记序号，换过爬取范围就会错位，所以下次爬取会按 OD 重新核对一遍（已入库的车次不会重复抓）。</li></ul></section><section class="card reveal " id="sec-07" data-title="已知限制与边界"><h2><span class="secnum">07</span>已知限制与边界</h2>
+    <table class="kv wide">
+      <thead><tr><th>限制</th><th>说明与应对</th></tr></thead>
+      <tbody>
+        <tr><th>时刻表是「参考」</th><td>来自公开渠道的某一天数据，存在隔日开行/临时调图偏差；
+          拷贝日尤其只反映基准日。重要出行日建议真爬，买票前核对 12306。</td></tr>
+        <tr><th>需要 WebGL 与 Chromium 内核</th><td>地图与地球模式依赖 WebGL；无 WebGL 时页面会明说原因而不是白屏，
+          室内点/动线等纯数据功能不受影响。</td></tr>
+        <tr><th>POI 坐标只用于示意</th><td>城内点位来自高德检索，用于预览与示意图，<strong>不做导航</strong>；
+          查不到的名字记「未命中」，不猜坐标。</td></tr>
+        <tr><th>世界数据不含机票价</th><td>世界航班票价必须实时查询，编一个数字没有意义；
+          因此地球模式只给距离/时间/时差/天数建议。</td></tr>
+        <tr><th>爬取受 12306 风控影响</th><td>连续失败会触发长冷却并重建会话；失败的对记在账本里，
+          页面看得到，避免「以为爬完了」。</td></tr>
+        <tr><th>单进程单任务</th><td>同一时刻只允许一个爬取任务；服务重启后内存里的任务信息消失，
+          但进度账本在数据库里，页面照样能续爬。</td></tr>
+      </tbody>
+    </table></section>
+</div>
+
+<noscript><style>
+  #topbar, .stage, .deckbar, .deck-note { display:none; }
+  #slides-src { display:block !important; max-width:1120px; margin:0 auto; padding:30px 20px 60px; }
+  #slides-src .card { margin-top:26px; opacity:1 !important; transform:none !important; }
+</style></noscript>
+
+<script>
+(function () {
+  "use strict";
+  var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var FINE = window.matchMedia("(pointer: fine)").matches;
+  var EASE = "cubic-bezier(.77,0,.18,1)";
+
+  var track = document.getElementById("track");
+  var stage = document.getElementById("stage");
+  var tabsBox = document.getElementById("tabs");
+  var ink = document.getElementById("ink");
+  var curEl = document.getElementById("cur");
+  var totalEl = document.getElementById("total");
+  var barfill = document.getElementById("barfill");
+  var prevBtn = document.getElementById("prev");
+  var nextBtn = document.getElementById("next");
+  var cover = document.getElementById("cover");
+  var slides = [cover];
+  var titles = ["封面"];
+  var cur = 0;
+
+  /* ---------- 把注入的卡片变成幻灯片 ---------- */
+  var src = document.getElementById("slides-src");
+  Array.prototype.forEach.call(src.querySelectorAll(".card"), function (card) {
+    var sid = card.id || "";
+    var num = card.querySelector(".secnum");
+    var numText = num ? num.textContent.trim() : "";
+    var title = card.getAttribute("data-title") || numText;
+    card.removeAttribute("id");
+    card.classList.remove("reveal");
+    Array.prototype.forEach.call(card.querySelectorAll(".reveal"), function (el) {
+      el.classList.remove("reveal");
+    });
+    var slide = document.createElement("section");
+    slide.className = "slide";
+    slide.id = sid;
+    var inner = document.createElement("div");
+    inner.className = "slide-inner";
+    inner.appendChild(card);
+    var ghost = document.createElement("span");
+    ghost.className = "ghost";
+    ghost.textContent = numText;
+    ghost.setAttribute("aria-hidden", "true");
+    slide.appendChild(ghost);
+    slide.appendChild(inner);
+    track.appendChild(slide);
+    slides.push(slide);
+    titles.push(title);
+  });
+  src.parentNode.removeChild(src);
+  totalEl.textContent = String(slides.length).padStart(2, "0");
+
+  /* ---------- 入场编排条目 ---------- */
+  slides.forEach(function (sl) {
+    var card = sl.querySelector(".card");
+    var box = card || sl.querySelector(".slide-inner");
+    Array.prototype.forEach.call(box.children, function (k, ki) {
+      k.classList.add("s-item");
+      k.style.setProperty("--sd", String(Math.min(ki, 14)));
+    });
+  });
+
+  /* ---------- 标签栏 ---------- */
+  titles.forEach(function (title, i) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "tab" + (i === 0 ? " active" : "");
+    var em = document.createElement("em");
+    em.textContent = i === 0 ? "◆" : String(i).padStart(2, "0");
+    var sp = document.createElement("span");
+    sp.textContent = title;
+    b.appendChild(em);
+    b.appendChild(sp);
+    b.addEventListener("click", function () { goTo(i); });
+    tabsBox.appendChild(b);
+  });
+
+  function moveInk() {
+    var t = tabsBox.querySelectorAll(".tab")[cur];
+    if (!t) return;
+    ink.style.left = t.offsetLeft + "px";
+    ink.style.width = t.offsetWidth + "px";
+  }
+
+  /* ---------- 数字滚动 ---------- */
+  function fmtNum(v, target) {
+    var dec = Number.isInteger(target) ? 0 : 1;
+    return v.toLocaleString("zh-CN", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+  function countUp(el) {
+    var target = parseFloat(el.getAttribute("data-count"));
+    if (isNaN(target)) return;
+    if (REDUCED) { el.textContent = fmtNum(target, target); return; }
+    var dur = 1200, t0 = null;
+    function step(t) {
+      if (t0 === null) t0 = t;
+      var k = Math.max(0, Math.min(1, (t - t0) / dur));
+      var e = 1 - Math.pow(1 - k, 4);
+      el.textContent = fmtNum(target * e, target);
+      if (k < 1) requestAnimationFrame(step); else el.textContent = fmtNum(target, target);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- 封面数字：里程计（固定宽度，从下方同步滚上来，不引起版面抖动） ---------- */
+  function buildOdom(el) {
+    var target = parseInt(el.getAttribute("data-count"), 10);
+    if (isNaN(target)) return;
+    el.classList.add("odom");
+    el.setAttribute("aria-label", String(target));
+    el.textContent = "";
+    var cols = [];
+    String(target).split("").forEach(function (d) {
+      var col = document.createElement("span");
+      col.className = "odom-col";
+      var strip = document.createElement("span");
+      strip.className = "odom-strip";
+      for (var i = 0; i <= 9; i++) {
+        var s = document.createElement("span");
+        s.textContent = String(i);
+        strip.appendChild(s);
+      }
+      col.appendChild(strip);
+      el.appendChild(col);
+      cols.push({ strip: strip, to: parseInt(d, 10) });
+    });
+    el._odomCols = cols;
+  }
+  function runOdom(el) {
+    if (!el._odomCols || el.getAttribute("data-odom-run") === "1") return;
+    el.setAttribute("data-odom-run", "1");
+    el._odomCols.forEach(function (c) {
+      c.strip.style.transition = "none";
+      c.strip.style.transform = "translateY(0em)";
+    });
+    if (REDUCED) {
+      el._odomCols.forEach(function (c) {
+        c.strip.style.transform = "translateY(-" + c.to + "em)";
+      });
+      return;
+    }
+    void el.offsetWidth;
+    el._odomCols.forEach(function (c) {
+      c.strip.style.transition = "transform 1.15s cubic-bezier(.22,1,.36,1)";
+      c.strip.style.transform = "translateY(-" + c.to + "em)";
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".hero-stats b[data-count]"), buildOdom);
+
+  /* ---------- 激活一页：重播入场 + 数字 + 进度条 ---------- */
+  function replay(sl) {
+    var items = Array.prototype.slice.call(sl.querySelectorAll(".s-item"));
+    items.forEach(function (k) { k.classList.add("pre"); });
+    void sl.offsetWidth;
+    items.forEach(function (k) { k.classList.remove("pre"); });
+    Array.prototype.forEach.call(sl.querySelectorAll("b[data-count]"), function (b) {
+      if (!b.getAttribute("data-counted")) {
+        b.setAttribute("data-counted", "1");
+        if (b.closest(".hero-stats")) runOdom(b);
+        else countUp(b);
+      }
+    });
+    Array.prototype.forEach.call(sl.querySelectorAll(".pbar i"), function (p) {
+      if (!p.classList.contains("grow")) p.classList.add("grow");
+    });
+  }
+
+  function goTo(i) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    cur = i;
+    track.style.transform = "translate3d(-" + (i * 100) + "%,0,0)";
+    slides.forEach(function (sl, si) { sl.classList.toggle("active", si === i); });
+    Array.prototype.forEach.call(tabsBox.querySelectorAll(".tab"), function (t, ti) {
+      t.classList.toggle("active", ti === i);
+    });
+    moveInk();
+    curEl.textContent = String(i + 1).padStart(2, "0");
+    barfill.style.width = ((i + 1) / slides.length * 100).toFixed(2) + "%";
+    prevBtn.classList.toggle("off", i === 0);
+    nextBtn.classList.toggle("off", i === slides.length - 1);
+    var t = tabsBox.querySelectorAll(".tab")[i];
+    if (t && t.scrollIntoView) {
+      t.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", inline: "nearest", block: "nearest" });
+    }
+    replay(slides[i]);
+    try { if (history.replaceState) history.replaceState(null, "", "#" + slides[i].id); }
+    catch (err) { /* file:// 下忽略 */ }
+  }
+
+  function idxFromHash() {
+    var h = (location.hash || "").replace("#", "");
+    for (var i = 0; i < slides.length; i++) if (slides[i].id === h) return i;
+    return 0;
+  }
+
+  /* ---------- 交互入口 ---------- */
+  prevBtn.addEventListener("click", function () { goTo(cur - 1); });
+  nextBtn.addEventListener("click", function () { goTo(cur + 1); });
+  var cta = document.getElementById("cta");
+  if (cta) cta.addEventListener("click", function () { goTo(1); });
+
+  window.addEventListener("keydown", function (ev) {
+    var tag = ev.target && ev.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (ev.key === "ArrowRight" || ev.key === "PageDown") { goTo(cur + 1); ev.preventDefault(); }
+    else if (ev.key === "ArrowLeft" || ev.key === "PageUp") { goTo(cur - 1); ev.preventDefault(); }
+    else if (ev.key === "Home") { goTo(0); ev.preventDefault(); }
+    else if (ev.key === "End") { goTo(slides.length - 1); ev.preventDefault(); }
+  });
+  window.addEventListener("hashchange", function () {
+    var i = idxFromHash();
+    if (i !== cur) goTo(i);
+  });
+
+  /* ---------- 拖拽 / 滑动 ---------- */
+  var startX = 0, dx = 0, dragging = false;
+  stage.addEventListener("pointerdown", function (ev) {
+    if (ev.pointerType === "mouse" && ev.target.closest("a,button,summary,input,select,textarea")) return;
+    dragging = true; startX = ev.clientX; dx = 0;
+    document.body.classList.add("dragging");
+  });
+  window.addEventListener("pointermove", function (ev) {
+    if (!dragging) return;
+    dx = ev.clientX - startX;
+    track.style.transform = "translate3d(calc(-" + (cur * 100) + "% + " + dx + "px),0,0)";
+  });
+  window.addEventListener("pointerup", function () {
+    if (!dragging) return;
+    dragging = false;
+    document.body.classList.remove("dragging");
+    var target = cur + (dx < 0 ? 1 : -1);
+    if (Math.abs(dx) > 70 && target >= 0 && target < slides.length) goTo(target);
+    else track.style.transform = "translate3d(-" + (cur * 100) + "%,0,0)";
+  });
+
+  /* ---------- 封面标题逐字入场 ---------- */
+  var h1 = cover.querySelector("h1");
+  if (h1 && !REDUCED) {
+    (function walk(node) {
+      Array.prototype.slice.call(node.childNodes).forEach(function (cn) {
+        if (cn.nodeType === 3) {
+          var frag = document.createDocumentFragment();
+          var text = cn.textContent.replace(/\s+/g, " ");
+          for (var i = 0; i < text.length; i++) {
+            var s = document.createElement("span");
+            s.className = "char";
+            s.textContent = text[i] === " " ? "\u00A0" : text[i];
+            frag.appendChild(s);
+          }
+          cn.parentNode.replaceChild(frag, cn);
+        } else if (cn.nodeType === 1) {
+          walk(cn);
+        }
+      });
+    })(h1);
+    var chars = h1.querySelectorAll(".char");
+    Array.prototype.forEach.call(chars, function (c, i) {
+      c.style.animation = "charIn .55s cubic-bezier(.16,1,.3,1) " + (i * 24) + "ms both";
+    });
+  }
+
+  /* ---------- 终端配色 / 状态药丸 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll("pre"), function (pre) {
+    var lines = pre.textContent.split("\n");
+    pre.textContent = "";
+    lines.forEach(function (line) {
+      var d = document.createElement("div");
+      d.textContent = line.length ? line : "\u00A0";
+      var t = line.trim();
+      if (t.indexOf("✓") === 0) d.className = "line-ok";
+      else if (t.indexOf("✗") === 0 || /加载失败|Error|异常/.test(t)) d.className = "line-bad";
+      else if (t.indexOf("截图") === 0) d.className = "line-dim";
+      else if (t.indexOf("·") === 0 || t.indexOf("[") === 0) d.className = "line-info";
+      pre.appendChild(d);
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("table.kv td"), function (td) {
+    var t = td.textContent.trim();
+    if (t === "running" || t === "done" || t === "failed") {
+      var s = document.createElement("span");
+      s.className = "state " + t;
+      s.textContent = t;
+      td.textContent = "";
+      td.appendChild(s);
+    }
+  });
+
+  /* ---------- 背景视差 ---------- */
+  if (FINE && !REDUCED) {
+    var bgA = document.getElementById("bgA");
+    var bgB = document.getElementById("bgB");
+    var mx = 0, my = 0, cx = 0, cy = 0;
+    window.addEventListener("mousemove", function (ev) {
+      mx = (ev.clientX / window.innerWidth - 0.5) * 2;
+      my = (ev.clientY / window.innerHeight - 0.5) * 2;
+    }, { passive: true });
+    (function tick() {
+      cx += (mx - cx) * 0.05; cy += (my - cy) * 0.05;
+      if (bgA) bgA.style.transform = "translate3d(" + (cx * -18).toFixed(2) + "px," + (cy * -12).toFixed(2) + "px,0)";
+      if (bgB) bgB.style.transform = "translate3d(" + (cx * 26).toFixed(2) + "px," + (cy * 20).toFixed(2) + "px,0)";
+      requestAnimationFrame(tick);
+    })();
+  }
+
+  /* ---------- 启动 ---------- */
+  goTo(idxFromHash());
+  window.addEventListener("resize", moveInk);
+})();
+</script>
+</body>
+</html>
